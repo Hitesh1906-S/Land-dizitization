@@ -19,7 +19,8 @@
     "test:ocr": "tsx tests/ocr-pipeline.test.ts",
     "test:extraction": "tsx --test tests/field-extraction.test.ts",
     "test:verification": "tsx --test tests/human-verification-workflow.test.ts",
-    "test:validation": "tsx --test tests/validation-engine.test.ts"
+    "test:validation": "tsx --test tests/validation-engine.test.ts",
+    "test:duplicates": "tsx --test tests/duplicate-detection.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.12.0",

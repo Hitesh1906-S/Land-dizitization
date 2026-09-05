@@ -288,6 +288,10 @@ export enum ConflictType {
   DUPLICATE_KHASRA = 'DUPLICATE_KHASRA',
   TITLE_DISPUTE = 'TITLE_DISPUTE',
   SHARE_EXCESS = 'SHARE_EXCESS',
+  FUZZY_MATCH = 'FUZZY_MATCH',
+  FUZZY_DUPLICATE = 'FUZZY_DUPLICATE',
+  OWNER_CLASH = 'OWNER_CLASH',
+  AREA_DISCREPANCY = 'AREA_DISCREPANCY',
 }
 
 export enum ConflictStatus {
@@ -295,6 +299,17 @@ export enum ConflictStatus {
   INVESTIGATING = 'INVESTIGATING',
   RESOLVED = 'RESOLVED',
   DISMISSED = 'DISMISSED',
+}
+
+export interface DuplicateScoreBreakdown {
+  khasraScore: number;       // 0 - 100
+  ownerScore: number;        // 0 - 100
+  locationScore: number;     // 0 - 100
+  areaScore: number;         // 0 - 100
+  registrationScore: number; // 0 - 100
+  compositeScore: number;    // 0 - 100
+  confidenceLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+  matchReasons: string[];
 }
 
 export interface DuplicateCandidateDTO {
@@ -310,8 +325,16 @@ export interface DuplicateCandidateDTO {
   resolvedAt?: string | null;
   primaryRecord?: LandRecordDTO;
   conflictingRecord?: LandRecordDTO | null;
+  scoreBreakdown?: DuplicateScoreBreakdown | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DuplicateScanResultDTO {
+  scannedRecordId?: string;
+  totalEvaluated: number;
+  candidatesFound: number;
+  candidates: DuplicateCandidateDTO[];
 }
 
 // 12. Request (Mutation / Digitization Lifecycle)

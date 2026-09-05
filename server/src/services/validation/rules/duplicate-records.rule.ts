@@ -1,13 +1,14 @@
 import { IValidationRule, ValidationCheckResult, ValidationContext } from './rule.interface.js';
 import { prisma } from '../../../config/database.js';
 import * as turf from '@turf/turf';
+import { DuplicateDetectorService } from '../../duplicate/duplicate-detector.service.js';
 
 export class DuplicateRecordsRule implements IValidationRule {
   readonly ruleCode = 'DUPLICATE_RECORDS';
   readonly name = 'Cadastral Duplicate & Spatial Encroachment Check';
   readonly category = 'DUPLICATE_CHECK' as const;
   readonly defaultSeverity = 'CRITICAL' as const;
-  readonly description = 'Detects duplicate (location + Khasra) clashes, cadastral boundary spatial overlaps, and duplicate deed reference numbers.';
+  readonly description = 'Detects duplicate (location + Khasra) clashes, multi-vector similarity matches, cadastral boundary spatial overlaps, and duplicate deed reference numbers.';
 
   async validate(context: ValidationContext): Promise<ValidationCheckResult> {
     const { record } = context;
@@ -95,6 +96,38 @@ export class DuplicateRecordsRule implements IValidationRule {
       }
     }
 
+    // 3. Multi-Vector Fuzzy Similarity Duplicate Scan
+    try {
+      const candidates = await DuplicateDetectorService.scanRecord(record.id, 75);
+      if (candidates.length > 0) {
+        const top = candidates[0];
+        const severity = top.confidenceLevel === 'HIGH' ? 'CRITICAL' : 'WARNING';
+
+        return {
+          ruleCode: this.ruleCode,
+          name: this.name,
+          category: this.category,
+          passed: false,
+          severity,
+          title: `Potential Duplicate Record (${top.compositeScore}% Match Confidence)`,
+          explanation: `System detected potential duplicate candidate (Record ID: ${top.conflictingRecordId}) based on: ${top.matchReasons.join(', ')}.`,
+          conflictingValues: {
+            conflictingRecordId: top.conflictingRecordId,
+            compositeScore: top.compositeScore,
+            confidenceLevel: top.confidenceLevel,
+            khasraScore: top.scoreBreakdown.khasraScore,
+            ownerScore: top.scoreBreakdown.ownerScore,
+            locationScore: top.scoreBreakdown.locationScore,
+            areaScore: top.scoreBreakdown.areaScore,
+            matchReasons: top.matchReasons.join('; '),
+          },
+          recommendedAction: 'Review duplicate candidate pair in the Conflict Workbench for human review and determination.',
+        };
+      }
+    } catch (e) {
+      // Continue if duplicate scan has non-critical issue
+    }
+
     return {
       ruleCode: this.ruleCode,
       name: this.name,
@@ -102,7 +135,7 @@ export class DuplicateRecordsRule implements IValidationRule {
       passed: true,
       severity: 'INFO',
       title: 'Duplicate & Spatial Checks Clear',
-      explanation: `No duplicate Khasra collisions or spatial boundary overlaps detected in village location.`,
+      explanation: `No duplicate Khasra collisions, spatial boundary overlaps, or high-confidence fuzzy duplicates detected.`,
       recommendedAction: 'No action required.',
     };
   }
