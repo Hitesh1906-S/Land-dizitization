@@ -23,10 +23,14 @@ import {
   AlertCircle,
   ShieldCheck,
   User,
+  LayoutGrid,
+  Table as TableIcon,
+  Sparkles,
 } from 'lucide-react';
 
 export const RecordDirectoryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Filter States initialized from URL search params
   const [stateFilter, setStateFilter] = useState(searchParams.get('state') || '');
@@ -301,6 +305,110 @@ export const RecordDirectoryPage: React.FC = () => {
         </form>
       </Card>
 
+      {/* Interactive Quick Filter Tags & View Switcher Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">
+            Quick Filter:
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              handleResetFilters();
+            }}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+              !statusFilter && !landTypeFilter && !districtFilter
+                ? 'bg-govnavy-900 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            All Records
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter(RecordStatus.VERIFIED);
+              setPage(1);
+            }}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+              statusFilter === RecordStatus.VERIFIED
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+            }`}
+          >
+            ✓ Verified Titles (सत्यापित)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter(RecordStatus.PENDING_VERIFICATION);
+              setPage(1);
+            }}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+              statusFilter === RecordStatus.PENDING_VERIFICATION
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+            }`}
+          >
+            ⏳ Pending Verification
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setLandTypeFilter(LandType.AGRICULTURAL);
+              setPage(1);
+            }}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+              landTypeFilter === LandType.AGRICULTURAL
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+            }`}
+          >
+            🌾 Agricultural
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDistrictFilter('Jaipur');
+              setPage(1);
+            }}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+              districtFilter === 'Jaipur'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+            }`}
+          >
+            📍 Jaipur District
+          </button>
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 self-end sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors ${
+              viewMode === 'grid' ? 'bg-white text-govnavy-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+            }`}
+            title="Grid Cards View"
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span className="hidden md:inline">Cards</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors ${
+              viewMode === 'table' ? 'bg-white text-govnavy-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+            }`}
+            title="Table Rows View"
+          >
+            <TableIcon className="w-4 h-4" />
+            <span className="hidden md:inline">Table</span>
+          </button>
+        </div>
+      </div>
+
       {/* Error Alert */}
       {error && (
         <Alert variant="danger">
@@ -350,8 +458,68 @@ export const RecordDirectoryPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Records Grid */}
-      {!isLoading && records.length > 0 && (
+      {/* Table View Mode */}
+      {!isLoading && records.length > 0 && viewMode === 'table' && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200 text-[11px]">
+              <tr>
+                <th className="py-3 px-4">ULPIN / Khasra</th>
+                <th className="py-3 px-4">Primary Title Holder</th>
+                <th className="py-3 px-4">Jurisdiction (Village / Tehsil)</th>
+                <th className="py-3 px-4">Area (m²)</th>
+                <th className="py-3 px-4">Category</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {records.map((record) => {
+                const primaryOwner =
+                  record.owners?.find((o) => o.isPrimary)?.fullName ||
+                  record.owners?.[0]?.fullName ||
+                  'Unspecified';
+
+                return (
+                  <tr key={record.id} className="hover:bg-blue-50/40 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-govnavy-900">
+                      <div>Khasra {record.khasraNumber}</div>
+                      <div className="text-[10px] text-slate-400 font-normal">{record.ulpin}</div>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-slate-900">
+                      {primaryOwner}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600">
+                      {record.location?.village}, {record.location?.tehsil}
+                    </td>
+                    <td className="py-3 px-4 font-mono font-medium">
+                      {record.areaInSqMeters.toLocaleString('en-IN')} m²
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px] uppercase">
+                        {record.landType}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <StatusBadge status={record.status} />
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <Link to={`/records/${record.id}`}>
+                        <Button variant="outline" size="sm" className="text-xs">
+                          Inspect
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Records Grid View Mode */}
+      {!isLoading && records.length > 0 && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {records.map((record) => {
             const primaryOwner =
@@ -362,7 +530,7 @@ export const RecordDirectoryPage: React.FC = () => {
             return (
               <Card
                 key={record.id}
-                className="p-5 bg-white border-slate-300 shadow-gov-sm hover:shadow-gov-md transition-shadow flex flex-col justify-between"
+                className="p-5 bg-white border-slate-300 shadow-gov-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

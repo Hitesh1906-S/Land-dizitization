@@ -14,6 +14,7 @@ import {
   FolderLock,
   Search,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import { Badge } from '../common/Badge';
 
@@ -43,6 +44,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   const generalNav = [
+    { name: 'AI OCR Scanner', path: '/ocr-scanner', icon: Sparkles },
     { name: 'Registry Search', path: '/records', icon: Search },
     { name: 'Cadastral GIS Map', path: '/map', icon: MapPin },
   ];

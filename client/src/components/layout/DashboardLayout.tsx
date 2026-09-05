@@ -16,6 +16,7 @@ import {
   MapPin,
   FolderLock,
   Search,
+  Sparkles,
 } from 'lucide-react';
 
 export const DashboardLayout: React.FC = () => {
@@ -43,6 +44,7 @@ export const DashboardLayout: React.FC = () => {
   ];
 
   const generalNav = [
+    { name: 'AI OCR Scanner Studio', path: '/ocr-scanner', icon: Sparkles },
     { name: 'Registry Search', path: '/records', icon: Search },
     { name: 'Cadastral GIS Map', path: '/map', icon: MapPin },
   ];

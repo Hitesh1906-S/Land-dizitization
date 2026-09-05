@@ -207,6 +207,56 @@ export const CadastralMapPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Interactive Quick Cadastral Filter Pills */}
+      <div className="flex flex-wrap items-center gap-2 px-1 text-xs">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Quick Layers:
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            setValidationFilter('ALL');
+            setStatusFilter('ALL');
+            setVillageFilter('ALL');
+          }}
+          className={`px-3 py-1 rounded-full font-semibold transition-all shadow-2xs ${
+            validationFilter === 'ALL' && statusFilter === 'ALL' && villageFilter === 'ALL'
+              ? 'bg-govnavy-900 text-white shadow-xs'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          All Parcels ({geojsonData?.features?.length || 0})
+        </button>
+        <button
+          type="button"
+          onClick={() => setValidationFilter('PASSED')}
+          className={`px-3 py-1 rounded-full font-semibold transition-all shadow-2xs ${
+            validationFilter === 'PASSED'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+          }`}
+        >
+          ✓ Clean Validated (0 Overlaps)
+        </button>
+        <button
+          type="button"
+          onClick={() => setValidationFilter('WARNINGS')}
+          className={`px-3 py-1 rounded-full font-semibold transition-all shadow-2xs ${
+            validationFilter === 'WARNINGS'
+              ? 'bg-amber-600 text-white shadow-xs'
+              : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+          }`}
+        >
+          ⚠️ Has Warnings / Overlaps
+        </button>
+        <Link
+          to="/ocr-scanner"
+          className="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold transition-all"
+        >
+          <span>⚡ Scanned Deed AI OCR</span>
+        </Link>
+      </div>
+
       {/* Main Map & Inspector Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 relative">
         {/* Map Container (Desktop: col-span-8, Mobile: full) */}
