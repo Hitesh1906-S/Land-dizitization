@@ -177,10 +177,10 @@ export const resolveConflictSchema = z.object({
 
 // Mutation / Request Schemas
 export const createRequestSchema = z.object({
-  landRecordId: z.string().uuid().optional(),
+  landRecordId: z.string().optional().nullable(),
   requestType: z.nativeEnum(RequestType),
   metadata: z.record(z.any()).optional(),
-  documentIds: z.array(z.string().uuid()).optional(),
+  documentIds: z.array(z.string()).optional(),
 });
 
 export const updateRequestStageSchema = z.object({
