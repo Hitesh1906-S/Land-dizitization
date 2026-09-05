@@ -50,7 +50,18 @@ export const RegisterPage: React.FC = () => {
         navigate('/citizen/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to create account. Please verify input fields.');
+      if (err.response?.data?.error) {
+        const errObj = err.response.data.error;
+        if (Array.isArray(errObj.details) && errObj.details.length > 0) {
+          setError(errObj.details.map((d: any) => d.message).join(' | '));
+        } else {
+          setError(errObj.message || 'Registration failed. Please check your details.');
+        }
+      } else if (err.message && err.message.includes('Network Error')) {
+        setError('Cannot reach server. Please ensure the backend API server is running on port 5000.');
+      } else {
+        setError(err.message || 'Failed to create account. Please verify input fields.');
+      }
     } finally {
       setIsLoading(false);
     }

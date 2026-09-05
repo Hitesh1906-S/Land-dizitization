@@ -40,10 +40,18 @@ export const LoginPage: React.FC = () => {
         navigate('/citizen/dashboard', { replace: true });
       }
     } catch (err: any) {
-      setError(
-        err.response?.data?.error?.message ||
-          'Authentication failed. Please check your email and password.'
-      );
+      if (err.response?.data?.error) {
+        const errObj = err.response.data.error;
+        if (Array.isArray(errObj.details) && errObj.details.length > 0) {
+          setError(errObj.details.map((d: any) => d.message).join(' | '));
+        } else {
+          setError(errObj.message || 'Authentication failed. Please check your email and password.');
+        }
+      } else if (err.message && err.message.includes('Network Error')) {
+        setError('Cannot reach server. Please ensure the backend API server is running on port 5000.');
+      } else {
+        setError(err.message || 'Authentication failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
