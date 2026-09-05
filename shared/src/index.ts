@@ -152,6 +152,7 @@ export interface GeoJSONFeature<G = GeoJSONPolygon | GeoJSONMultiPolygon, P = Re
   id?: string | number;
   geometry: G;
   properties: P;
+  bbox?: number[];
 }
 
 export interface GeoJSONFeatureCollection<G = GeoJSONPolygon | GeoJSONMultiPolygon, P = Record<string, any>> {

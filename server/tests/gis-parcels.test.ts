@@ -114,7 +114,7 @@ describe('Cadastral GIS Mapping & Spatial Parcel Module', () => {
       assert.equal(feature?.properties?.validationStatus, 'PASSED');
       assert.equal(feature?.properties?.validationScore, 100);
       assert.equal(feature?.properties?.areaInSqMeters, 4000);
-      assert.ok(feature?.bbox && feature.bbox.length === 4);
+      assert.ok((feature as any)?.bbox && (feature as any).bbox.length === 4);
     });
   });
 
