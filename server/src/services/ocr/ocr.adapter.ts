@@ -1,16 +1,16 @@
-import { prisma } from '../../config/database';
-import { JobStatus, OcrEngine } from '../../constants';
-import { NotFoundError, BadRequestError } from '../../utils/AppError';
+import { prisma } from '../../config/database.js';
+import { JobStatus, OcrEngine } from '../../constants/index.js';
+import { NotFoundError, BadRequestError } from '../../utils/AppError.js';
 import { OCRResultDTO, ExtractedFieldDTO } from '@land-digitization/shared';
-import { defaultStorageProvider } from '../storage';
-import { DocumentPreprocessor } from './preprocessor';
-import { OcrEngineFactory } from './engines';
-import { LandFieldExtractor } from './field.extractor';
+import { defaultStorageProvider } from '../storage/index.js';
+import { DocumentPreprocessor } from './preprocessor.js';
+import { OcrEngineFactory } from './engines/index.js';
+import { FieldExtractionFactory, StructuredLandRecordResult } from './extractors/index.js';
 import fs from 'fs';
 
 export class OcrService {
   /**
-   * Starts and executes real OCR extraction on an uploaded document.
+   * Starts and executes real OCR extraction on an uploaded document and extracts 12 structured fields.
    */
   static async startExtractionJob(
     documentId: string,
@@ -89,11 +89,9 @@ export class OcrService {
 
       const totalProcessingTimeMs = Date.now() - startTime;
 
-      // 6. Extract structured land record fields from raw text
-      const extractedFields = LandFieldExtractor.extractFields(
-        rawExtraction.rawText,
-        rawExtraction.confidenceScore
-      );
+      // 6. Extract structured land record fields from raw text via Pluggable Field Extractor
+      const fieldExtractor = FieldExtractionFactory.getExtractor();
+      const extractionResult = await fieldExtractor.extractFields(rawExtraction.rawText);
 
       // 7. Persist completed OCRResult in PostgreSQL
       const updatedResult = await prisma.oCRResult.update({
@@ -108,15 +106,26 @@ export class OcrService {
         },
       });
 
-      // 8. Persist granular ExtractedField records
-      for (const field of extractedFields) {
+      // 8. Persist granular ExtractedField records with rich provenance metadata
+      for (const item of extractionResult.fieldList) {
+        const metaPayload = {
+          sourceSnippet: item.sourceSnippet,
+          isUncertain: item.isUncertain,
+          isMissing: item.isMissing,
+          status: item.status,
+          validationError: item.validationError,
+          normalizedValue: item.normalizedValue,
+          fieldLabel: item.fieldLabel,
+        };
+
         await prisma.extractedField.create({
           data: {
             ocrResultId: updatedResult.id,
-            fieldName: field.fieldName,
-            fieldValue: field.fieldValue,
-            confidence: field.confidence,
-            boundingBoxJson: field.boundingBox ? JSON.stringify(field.boundingBox) : null,
+            fieldName: item.fieldName,
+            fieldValue: item.fieldValue || '',
+            confidence: item.confidence,
+            boundingBoxJson: JSON.stringify(metaPayload),
+            isVerified: false,
           },
         });
       }
@@ -132,8 +141,11 @@ export class OcrService {
           snapshotDiffJson: JSON.stringify({
             documentId,
             engine: rawExtraction.engine,
+            extractor: fieldExtractor.providerName,
             confidenceScore: rawExtraction.confidenceScore,
-            fieldsCount: extractedFields.length,
+            fieldsExtracted: extractionResult.extractedFieldsCount,
+            uncertainFields: extractionResult.uncertainFieldsCount,
+            missingFields: extractionResult.missingFieldsCount,
             processingTimeMs: totalProcessingTimeMs,
           }),
         },
@@ -158,6 +170,17 @@ export class OcrService {
   }
 
   /**
+   * Directly extracts structured fields from given OCR text using the specified provider.
+   */
+  static async extractStructuredFields(
+    rawOcrText: string,
+    providerName?: string
+  ): Promise<StructuredLandRecordResult> {
+    const extractor = FieldExtractionFactory.getExtractor(providerName);
+    return extractor.extractFields(rawOcrText);
+  }
+
+  /**
    * Retrieves OCR result by Document ID with all extracted fields.
    */
   static async getResultByDocumentId(documentId: string): Promise<OCRResultDTO> {
@@ -176,7 +199,11 @@ export class OcrService {
   /**
    * Verifies and records officer review of an extracted field.
    */
-  static async verifyField(fieldId: string, verifiedValue: string, verifiedById: string): Promise<ExtractedFieldDTO> {
+  static async verifyField(
+    fieldId: string,
+    verifiedValue: string,
+    verifiedById: string
+  ): Promise<ExtractedFieldDTO> {
     const field = await prisma.extractedField.findUnique({
       where: { id: fieldId },
     });
@@ -206,6 +233,43 @@ export class OcrService {
       verifiedById: updated.verifiedById || undefined,
       createdAt: updated.createdAt.toISOString(),
     };
+  }
+
+  /**
+   * Batch verifies all extracted fields for a document.
+   */
+  static async batchVerifyFields(
+    documentId: string,
+    verifications: Array<{ fieldId: string; verifiedValue: string }>,
+    officerId: string
+  ): Promise<OCRResultDTO> {
+    for (const item of verifications) {
+      await prisma.extractedField.update({
+        where: { id: item.fieldId },
+        data: {
+          isVerified: true,
+          verifiedValue: item.verifiedValue,
+          verifiedById: officerId,
+        },
+      });
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: officerId,
+        actorRole: 'REVENUE_OFFICER',
+        action: 'VERIFY_OCR_FIELDS',
+        entityType: 'Document',
+        entityId: documentId,
+        snapshotDiffJson: JSON.stringify({
+          documentId,
+          verifiedFieldsCount: verifications.length,
+          timestamp: new Date().toISOString(),
+        }),
+      },
+    });
+
+    return this.getResultByDocumentId(documentId);
   }
 
   static mapToDTO(result: any): OCRResultDTO {

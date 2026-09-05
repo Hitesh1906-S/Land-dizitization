@@ -126,6 +126,21 @@ export const verifyExtractedFieldSchema = z.object({
   verifiedValue: z.string().min(1, 'Verified value is required'),
 });
 
+export const extractFieldsSchema = z.object({
+  rawOcrText: z.string().min(1, 'Raw OCR text is required'),
+  provider: z.enum(['gemini', 'gemini-ai', 'deterministic', 'rule-based']).optional(),
+});
+
+export const batchVerifyFieldsSchema = z.object({
+  verifications: z.array(
+    z.object({
+      fieldId: z.string().uuid('Valid fieldId is required'),
+      verifiedValue: z.string().min(1, 'Verified value is required'),
+    })
+  ),
+  createOrUpdateRecord: z.boolean().optional().default(false),
+});
+
 // Validation Engine Schemas
 export const validateRecordSchema = z.object({
   landRecordId: z.string().uuid('Valid landRecordId is required'),
