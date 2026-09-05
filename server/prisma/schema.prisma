@@ -1,0 +1,209 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                   String            @id @default(uuid())
+  email                String            @unique
+  passwordHash         String
+  fullName             String
+  phone                String?
+  role                 String            @default("CITIZEN") // CITIZEN, REVENUE_OFFICER, ADMIN
+  jurisdictionDistrict String?
+  jurisdictionTehsil   String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  createdRecords       LandRecord[]      @relation("RecordCreator")
+  uploadedDocuments    Document[]        @relation("UserDocuments")
+  mutationRequests     MutationRequest[] @relation("ApplicantRequests")
+  assignedWorkflows    MutationRequest[] @relation("OfficerWorkflows")
+  resolvedConflicts    DuplicateConflict[] @relation("OfficerConflicts")
+  auditLogs            AuditLog[]        @relation("UserAuditLogs")
+
+  @@index([role])
+}
+
+model LandRecord {
+  id             String            @id @default(uuid())
+  ulpin          String            @unique // Unique Land Parcel Identification Number
+  khasraNumber   String            // Survey number
+  khatauniNumber String            // Account/Khatauni number
+  district       String
+  tehsil         String
+  village        String
+  areaInSqMeters Float
+  areaUnit       String            @default("SQ_METERS")
+  landType       String            @default("AGRICULTURAL")
+  status         String            @default("PENDING_VERIFICATION") // DRAFT, PENDING_VERIFICATION, VERIFIED, DISPUTED, ARCHIVED
+  createdById    String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  createdBy      User              @relation("RecordCreator", fields: [createdById], references: [id])
+  owners         LandOwner[]
+  geometry       ParcelGeometry?
+  documents      Document[]
+  conflictsAsA   DuplicateConflict[] @relation("RecordAConflicts")
+  conflictsAsB   DuplicateConflict[] @relation("RecordBConflicts")
+  mutationRequests MutationRequest[]
+  validationReports ValidationReport[]
+
+  @@unique([district, tehsil, village, khasraNumber])
+  @@index([district, tehsil, village])
+  @@index([khasraNumber])
+  @@index([status])
+}
+
+model LandOwner {
+  id               String      @id @default(uuid())
+  recordId         String
+  ownerName        String
+  identifierMasked String?     // Masked Aadhaar / PAN hash
+  relationType     String?     // S/O, D/O, W/O
+  shareFraction    Float       @default(1.0) // 0.0 to 1.0 (e.g. 0.5 for 50%)
+  isPrimary        Boolean     @default(true)
+  addedAt          DateTime    @default(now())
+
+  record           LandRecord  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+}
+
+model ParcelGeometry {
+  id            String      @id @default(uuid())
+  recordId      String      @unique
+  geometryJson  String      // GeoJSON stringified
+  centroidLat   Float
+  centroidLng   Float
+  crsProjection String      @default("EPSG:4326")
+  boundaryHash  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  record        LandRecord  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id             String          @id @default(uuid())
+  recordId       String?
+  workflowId     String?
+  fileName       String
+  fileType       String
+  filePath       String
+  fileSize       Int
+  fileHash       String          // SHA-256 for tampering detection
+  documentType   String          @default("REGISTRATION_DEED")
+  uploadedById   String
+  createdAt      DateTime        @default(now())
+
+  uploadedBy     User            @relation("UserDocuments", fields: [uploadedById], references: [id])
+  record         LandRecord?     @relation(fields: [recordId], references: [id], onDelete: SetNull)
+  workflow       MutationRequest? @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+  extractionJobs ExtractionJob[]
+
+  @@index([uploadedById])
+  @@index([recordId])
+  @@index([workflowId])
+  @@index([fileHash])
+}
+
+model ExtractionJob {
+  id                  String      @id @default(uuid())
+  documentId          String
+  status              String      @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED
+  rawOcrText          String?
+  extractedFieldsJson String?
+  confidenceScore     Float?
+  ocrEngine           String      @default("HYBRID")
+  completedAt         DateTime?
+  createdAt           DateTime    @default(now())
+
+  document            Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([status])
+}
+
+model ValidationReport {
+  id               String      @id @default(uuid())
+  recordId         String
+  isValid          Boolean
+  score            Float       // 0 - 100
+  ruleResultsJson  String      // Stringified JSON
+  createdAt        DateTime    @default(now())
+
+  record           LandRecord  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+}
+
+model DuplicateConflict {
+  id                String         @id @default(uuid())
+  recordAId         String
+  recordBId         String?
+  conflictType      String         // SPATIAL_OVERLAP, DUPLICATE_KHASRA, TITLE_DISPUTE, SHARE_SUM_MISMATCH
+  overlapPercentage Float?
+  status            String         @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, DISMISSED
+  resolutionNotes   String?
+  resolvedById      String?
+  resolvedAt        DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  recordA           LandRecord     @relation("RecordAConflicts", fields: [recordAId], references: [id])
+  recordB           LandRecord?    @relation("RecordBConflicts", fields: [recordBId], references: [id])
+  resolvedBy        User?          @relation("OfficerConflicts", fields: [resolvedById], references: [id])
+
+  @@index([recordAId])
+  @@index([recordBId])
+  @@index([status])
+}
+
+model MutationRequest {
+  id                String         @id @default(uuid())
+  applicationNo     String         @unique
+  recordId          String?
+  applicantId       String
+  requestType       String         @default("SALE_MUTATION")
+  stage             String         @default("SUBMITTED")
+  assignedOfficerId String?
+  rejectionReason   String?
+  metadataJson      String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  applicant         User           @relation("ApplicantRequests", fields: [applicantId], references: [id])
+  assignedOfficer   User?          @relation("OfficerWorkflows", fields: [assignedOfficerId], references: [id])
+  record            LandRecord?    @relation(fields: [recordId], references: [id])
+  documents         Document[]
+
+  @@index([applicantId])
+  @@index([assignedOfficerId])
+  @@index([stage])
+}
+
+model AuditLog {
+  id              String      @id @default(uuid())
+  actorId         String
+  actorRole       String
+  action          String
+  entityType      String
+  entityId        String
+  ipAddress       String?
+  userAgent       String?
+  snapshotDiffJson String?
+  timestamp       DateTime    @default(now())
+
+  actor           User        @relation("UserAuditLogs", fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([timestamp])
+}

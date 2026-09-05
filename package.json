@@ -1,0 +1,30 @@
+{
+  "name": "intelligent-land-record-digitization",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Intelligent Land Record Digitization and Validation System for SIH",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspaces --if-present",
+    "prisma:generate": "npm run prisma:generate --workspace=server",
+    "prisma:migrate": "npm run prisma:migrate --workspace=server",
+    "prisma:seed": "npm run prisma:seed --workspace=server"
+  },
+  "keywords": [
+    "land-digitization",
+    "gis",
+    "ocr",
+    "sih",
+    "cadastral",
+    "validation"
+  ],
+  "author": "SIH Team",
+  "license": "MIT"
+}
