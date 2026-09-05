@@ -1,16 +1,66 @@
-import { prisma } from '../../config/database';
-import { NotFoundError } from '../../utils/AppError';
-import { ValidationResultDTO, ValidationIssueDTO, ConflictType, ConflictStatus } from '@land-digitization/shared';
-import * as turf from '@turf/turf';
+import { prisma } from '../../config/database.js';
+import { NotFoundError } from '../../utils/AppError.js';
+import {
+  ValidationRuleRegistry,
+  ValidationCheckResult,
+  ValidationContext,
+} from './rules/index.js';
+
+export interface ComprehensiveValidationReport {
+  id: string;
+  landRecordId: string;
+  isValid: boolean;
+  status: 'PASSED' | 'WARNINGS' | 'FAILED';
+  overallScore: number;
+  totalChecksCount: number;
+  passedChecksCount: number;
+  failedChecksCount: number;
+  criticalIssuesCount: number;
+  warningIssuesCount: number;
+  infoIssuesCount: number;
+  summary: string;
+  executedById: string;
+  createdAt: string;
+  checks: ValidationCheckResult[];
+  issues: Array<{
+    id: string;
+    ruleCode: string;
+    severity: 'CRITICAL' | 'WARNING' | 'INFO';
+    title: string;
+    description: string;
+    isResolved: boolean;
+    conflictingValues?: any;
+    explanation?: string;
+    recommendedAction?: string;
+    resolvedById?: string | null;
+    resolvedAt?: string | null;
+  }>;
+}
 
 export class ValidationEngine {
-  static async validateRecord(recordId: string, executedById?: string): Promise<ValidationResultDTO> {
+  /**
+   * Executes the full deterministic validation engine across all registered rules for a given land record.
+   */
+  static async validateRecord(
+    recordId: string,
+    executedById?: string
+  ): Promise<ComprehensiveValidationReport> {
     const record = await prisma.landRecord.findUnique({
       where: { id: recordId },
       include: {
+        location: true,
         owners: true,
         parcel: true,
-        location: true,
+        documents: {
+          include: {
+            ocrResult: {
+              include: { extractedFields: true },
+            },
+          },
+        },
+        ownershipHistory: {
+          orderBy: { mutationDate: 'desc' },
+        },
       },
     });
 
@@ -18,208 +68,273 @@ export class ValidationEngine {
       throw new NotFoundError(`Land record with ID ${recordId} not found`);
     }
 
-    // Default executor fallback to record creator if not provided
     const validExecutorId = executedById || record.createdById;
+    const context: ValidationContext = { record: record as any };
 
-    const issues: {
-      ruleCode: string;
-      severity: 'CRITICAL' | 'WARNING' | 'INFO';
-      title: string;
-      description: string;
-      detailsJson?: string;
-    }[] = [];
+    // 1. Execute all rules in registry
+    const rules = ValidationRuleRegistry.getAllRules();
+    const checkResults: ValidationCheckResult[] = [];
 
-    // Rule 1: Syntactic check (Valid Khasra & Khatauni format)
-    const hasValidKhasra = Boolean(record.khasraNumber && /^[0-9]+(\/[0-9]+)*[A-Za-z]?$/.test(record.khasraNumber));
-    if (!hasValidKhasra) {
-      issues.push({
-        ruleCode: 'SYNTAX_INVALID',
-        severity: 'CRITICAL',
-        title: 'Invalid Khasra Number Syntax',
-        description: `Khasra number "${record.khasraNumber}" does not follow state cadastral numbering format (e.g. 102/4).`,
-      });
+    for (const rule of rules) {
+      const res = await rule.validate(context);
+      checkResults.push(res);
     }
 
-    // Rule 2: Share Sum Arithmetic Check (sum of owner shares should equal 1.0 / 100%)
-    const totalShare = record.owners.reduce((sum, owner) => sum + owner.shareFraction, 0);
-    const sharePassed = Math.abs(totalShare - 1.0) < 0.001;
-    if (!sharePassed) {
-      issues.push({
-        ruleCode: 'SHARE_SUM_MISMATCH',
-        severity: 'CRITICAL',
-        title: 'Ownership Share Sum Mismatch',
-        description: `Total ownership shares equal ${(totalShare * 100).toFixed(1)}% instead of exactly 100.0%.`,
-        detailsJson: JSON.stringify({ totalShare, ownerCount: record.owners.length }),
-      });
-    }
+    // 2. Aggregate counts & scores
+    const failedChecks = checkResults.filter((c) => !c.passed);
+    const criticalIssues = failedChecks.filter((c) => c.severity === 'CRITICAL');
+    const warningIssues = failedChecks.filter((c) => c.severity === 'WARNING');
+    const infoIssues = failedChecks.filter((c) => c.severity === 'INFO');
 
-    // Rule 3: Spatial Boundary and Area Consistency Check
-    if (record.parcel) {
-      try {
-        const poly = typeof record.parcel.geometryJson === 'string'
-          ? JSON.parse(record.parcel.geometryJson)
-          : (record.parcel.geometryJson as any);
-        const calculatedAreaSqM = turf.area(poly);
-        const areaDifference = Math.abs(calculatedAreaSqM - record.areaInSqMeters);
-        const tolerancePercentage = 0.05; // 5% tolerance
-        const maxAllowedDiff = record.areaInSqMeters * tolerancePercentage;
+    // Deterministic Score Deduction Formula:
+    // Base: 100
+    // Each Critical: -25 pts
+    // Each Warning: -10 pts
+    let score = 100 - (criticalIssues.length * 25 + warningIssues.length * 10);
+    score = Math.max(0, Math.min(100, score));
 
-        if (areaDifference > maxAllowedDiff) {
-          issues.push({
-            ruleCode: 'AREA_DEVIATION',
-            severity: 'WARNING',
-            title: 'GIS Polygon vs Deed Area Deviation',
-            description: `GIS calculated area (${Math.round(calculatedAreaSqM)} m²) differs from registered deed area (${record.areaInSqMeters} m²) by ${Math.round(areaDifference)} m² (>5% tolerance).`,
-            detailsJson: JSON.stringify({ calculatedAreaSqM, deedArea: record.areaInSqMeters, difference: areaDifference }),
-          });
-        }
+    const isValid = criticalIssues.length === 0 && failedChecks.length === 0;
+    const status: 'PASSED' | 'WARNINGS' | 'FAILED' =
+      criticalIssues.length > 0 || score < 75
+        ? 'FAILED'
+        : warningIssues.length > 0
+        ? 'WARNINGS'
+        : 'PASSED';
 
-        // Rule 4: Spatial Overlap / Boundary Encroachment with other parcels in the same location
-        const otherRecords = await prisma.landRecord.findMany({
-          where: {
-            id: { not: record.id },
-            locationId: record.locationId,
-            parcel: { isNot: null },
-          },
-          include: { parcel: true },
-        });
+    const summary =
+      status === 'PASSED'
+        ? `All ${rules.length} statutory checks passed successfully (Score: 100/100). Title is mathematically and legally compliant.`
+        : status === 'WARNINGS'
+        ? `Passed with ${warningIssues.length} warning(s) (Score: ${score}/100). Minor title deviations detected that require officer review.`
+        : `Validation FAILED with ${criticalIssues.length} critical defect(s) and ${warningIssues.length} warning(s) (Score: ${score}/100). Title cannot be certified until defects are rectified.`;
 
-        for (const other of otherRecords) {
-          if (other.parcel) {
-            const otherPoly = typeof other.parcel.geometryJson === 'string'
-              ? JSON.parse(other.parcel.geometryJson)
-              : (other.parcel.geometryJson as any);
-            const intersection = turf.intersect(poly, otherPoly);
-
-            if (intersection) {
-              const overlapArea = turf.area(intersection);
-              if (overlapArea > 5) {
-                const overlapPct = (overlapArea / record.areaInSqMeters) * 100;
-
-                issues.push({
-                  ruleCode: 'SPATIAL_OVERLAP',
-                  severity: 'CRITICAL',
-                  title: `Spatial Boundary Overlap with Khasra ${other.khasraNumber}`,
-                  description: `Detected ${Math.round(overlapArea)} m² (${overlapPct.toFixed(1)}%) spatial boundary overlap with adjacent parcel ${other.khasraNumber}.`,
-                  detailsJson: JSON.stringify({ conflictingRecordId: other.id, overlapArea, overlapPct }),
-                });
-
-                // Create or update duplicate candidate
-                const existingCandidate = await prisma.duplicateCandidate.findFirst({
-                  where: {
-                    primaryRecordId: record.id,
-                    conflictingRecordId: other.id,
-                  },
-                });
-
-                if (existingCandidate) {
-                  await prisma.duplicateCandidate.update({
-                    where: { id: existingCandidate.id },
-                    data: {
-                      overlapPercentage: overlapPct,
-                      overlapAreaSqM: overlapArea,
-                      conflictType: ConflictType.SPATIAL_OVERLAP,
-                    },
-                  });
-                } else {
-                  await prisma.duplicateCandidate.create({
-                    data: {
-                      primaryRecordId: record.id,
-                      conflictingRecordId: other.id,
-                      conflictType: ConflictType.SPATIAL_OVERLAP,
-                      overlapPercentage: overlapPct,
-                      overlapAreaSqM: overlapArea,
-                      status: ConflictStatus.OPEN,
-                    },
-                  });
-                }
-              }
-            }
-          }
-        }
-      } catch (spatialErr: any) {
-        issues.push({
-          ruleCode: 'GIS_PARSE_ERROR',
-          severity: 'CRITICAL',
-          title: 'GIS Polygon Parse Failure',
-          description: `Unable to compute spatial geometry: ${spatialErr.message}`,
-        });
-      }
-    } else {
-      issues.push({
-        ruleCode: 'MISSING_PARCEL_GIS',
-        severity: 'WARNING',
-        title: 'Missing Cadastral GIS Polygon',
-        description: 'Land record does not have an attached GIS parcel boundary geometry.',
-      });
-    }
-
-    const criticalCount = issues.filter(i => i.severity === 'CRITICAL').length;
-    const warningCount = issues.filter(i => i.severity === 'WARNING').length;
-    const overallScore = Math.max(0, 100 - (criticalCount * 30) - (warningCount * 10));
-    const isValid = criticalCount === 0;
-
-    const summary = isValid
-      ? `Validation passed successfully (Score: ${overallScore}%).`
-      : `Validation found ${criticalCount} critical issue(s) and ${warningCount} warning(s).`;
-
-    // Persist ValidationResult and granular ValidationIssue records
-    const validationResult = await prisma.validationResult.create({
+    // 3. Persist ValidationResult in PostgreSQL
+    const savedResult = await prisma.validationResult.create({
       data: {
         landRecordId: record.id,
         isValid,
-        overallScore,
+        overallScore: score,
         summary,
         executedById: validExecutorId,
-        issues: {
-          create: issues.map(i => ({
-            ruleCode: i.ruleCode,
-            severity: i.severity,
-            title: i.title,
-            description: i.description,
-            detailsJson: i.detailsJson,
-          })),
-        },
       },
+    });
+
+    // 4. Persist granular ValidationIssues
+    const savedIssues = [];
+    for (const check of failedChecks) {
+      const detailsPayload = {
+        conflictingValues: check.conflictingValues,
+        explanation: check.explanation,
+        recommendedAction: check.recommendedAction,
+        category: check.category,
+      };
+
+      const issue = await prisma.validationIssue.create({
+        data: {
+          validationResultId: savedResult.id,
+          ruleCode: check.ruleCode,
+          severity: check.severity,
+          title: check.title,
+          description: check.explanation,
+          detailsJson: JSON.stringify(detailsPayload),
+          isResolved: false,
+        },
+      });
+
+      savedIssues.push({
+        id: issue.id,
+        ruleCode: issue.ruleCode,
+        severity: check.severity,
+        title: issue.title,
+        description: check.explanation,
+        isResolved: false,
+        conflictingValues: check.conflictingValues,
+        explanation: check.explanation,
+        recommendedAction: check.recommendedAction,
+        resolvedById: null,
+        resolvedAt: null,
+      });
+    }
+
+    // 5. Immutable Audit Log
+    await prisma.auditLog.create({
+      data: {
+        actorId: validExecutorId,
+        actorRole: 'REVENUE_OFFICER',
+        action: 'EXECUTE_VALIDATION',
+        entityType: 'ValidationResult',
+        entityId: savedResult.id,
+        snapshotDiffJson: JSON.stringify({
+          landRecordId: record.id,
+          score,
+          status,
+          criticalCount: criticalIssues.length,
+          warningCount: warningIssues.length,
+          totalChecks: rules.length,
+          timestamp: new Date().toISOString(),
+        }),
+      },
+    });
+
+    return {
+      id: savedResult.id,
+      landRecordId: record.id,
+      isValid,
+      status,
+      overallScore: score,
+      totalChecksCount: rules.length,
+      passedChecksCount: checkResults.filter((c) => c.passed).length,
+      failedChecksCount: failedChecks.length,
+      criticalIssuesCount: criticalIssues.length,
+      warningIssuesCount: warningIssues.length,
+      infoIssuesCount: infoIssues.length,
+      summary,
+      executedById: validExecutorId,
+      createdAt: savedResult.createdAt.toISOString(),
+      checks: checkResults,
+      issues: savedIssues,
+    };
+  }
+
+  /**
+   * Retrieves the latest validation report with all granular issues for a record.
+   */
+  static async getLatestValidation(recordId: string): Promise<ComprehensiveValidationReport | null> {
+    const latest = await prisma.validationResult.findFirst({
+      where: { landRecordId: recordId },
+      orderBy: { createdAt: 'desc' },
+      include: { issues: true },
+    });
+
+    if (!latest) {
+      return null;
+    }
+
+    const issues = latest.issues.map((i) => {
+      let meta: any = {};
+      try {
+        meta = i.detailsJson ? JSON.parse(i.detailsJson) : {};
+      } catch (e) {}
+
+      return {
+        id: i.id,
+        ruleCode: i.ruleCode,
+        severity: i.severity as any,
+        title: i.title,
+        description: i.description,
+        isResolved: i.isResolved,
+        conflictingValues: meta.conflictingValues,
+        explanation: meta.explanation || i.description,
+        recommendedAction: meta.recommendedAction,
+        resolvedById: i.resolvedById,
+        resolvedAt: i.resolvedAt ? i.resolvedAt.toISOString() : null,
+      };
+    });
+
+    const criticalCount = issues.filter((i) => i.severity === 'CRITICAL' && !i.isResolved).length;
+    const warningCount = issues.filter((i) => i.severity === 'WARNING' && !i.isResolved).length;
+
+    const status: 'PASSED' | 'WARNINGS' | 'FAILED' =
+      criticalCount > 0 || latest.overallScore < 75
+        ? 'FAILED'
+        : warningCount > 0
+        ? 'WARNINGS'
+        : 'PASSED';
+
+    return {
+      id: latest.id,
+      landRecordId: latest.landRecordId,
+      isValid: latest.isValid,
+      status,
+      overallScore: latest.overallScore,
+      totalChecksCount: 8,
+      passedChecksCount: 8 - issues.filter((i) => !i.isResolved).length,
+      failedChecksCount: issues.filter((i) => !i.isResolved).length,
+      criticalIssuesCount: criticalCount,
+      warningIssuesCount: warningCount,
+      infoIssuesCount: issues.filter((i) => i.severity === 'INFO').length,
+      summary: latest.summary || '',
+      executedById: latest.executedById,
+      createdAt: latest.createdAt.toISOString(),
+      checks: [],
+      issues,
+    };
+  }
+
+  /**
+   * Resolves a specific validation issue with officer resolution notes.
+   */
+  static async resolveIssue(
+    issueId: string,
+    officerId: string,
+    resolutionNotes: string
+  ): Promise<any> {
+    const issue = await prisma.validationIssue.findUnique({
+      where: { id: issueId },
+      include: { validationResult: true },
+    });
+
+    if (!issue) {
+      throw new NotFoundError(`Validation issue with ID ${issueId} not found`);
+    }
+
+    const updated = await prisma.validationIssue.update({
+      where: { id: issueId },
+      data: {
+        isResolved: true,
+        resolvedById: officerId,
+        resolvedAt: new Date(),
+      },
+    });
+
+    // Write audit log
+    await prisma.auditLog.create({
+      data: {
+        actorId: officerId,
+        actorRole: 'REVENUE_OFFICER',
+        action: 'RESOLVE_VALIDATION_ISSUE',
+        entityType: 'ValidationIssue',
+        entityId: issueId,
+        snapshotDiffJson: JSON.stringify({
+          ruleCode: issue.ruleCode,
+          resolutionNotes,
+          resolvedAt: new Date().toISOString(),
+        }),
+      },
+    });
+
+    return {
+      id: updated.id,
+      ruleCode: updated.ruleCode,
+      isResolved: updated.isResolved,
+      resolvedById: updated.resolvedById,
+      resolvedAt: updated.resolvedAt?.toISOString(),
+      resolutionNotes,
+    };
+  }
+
+  /**
+   * Retrieves historical validation execution history for trend analysis.
+   */
+  static async getValidationHistory(recordId: string): Promise<any[]> {
+    const results = await prisma.validationResult.findMany({
+      where: { landRecordId: recordId },
+      orderBy: { createdAt: 'desc' },
       include: {
         issues: true,
       },
+      take: 10,
     });
 
-    return this.mapToDTO(validationResult);
-  }
-
-  static async getValidationHistory(recordId: string): Promise<ValidationResultDTO[]> {
-    const results = await prisma.validationResult.findMany({
-      where: { landRecordId: recordId },
-      include: { issues: true },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return results.map(r => this.mapToDTO(r));
-  }
-
-  static mapToDTO(r: any): ValidationResultDTO {
-    return {
+    return results.map((r) => ({
       id: r.id,
       landRecordId: r.landRecordId,
-      isValid: r.isValid,
       overallScore: r.overallScore,
-      summary: r.summary || undefined,
+      isValid: r.isValid,
+      summary: r.summary,
       executedById: r.executedById,
+      issuesCount: r.issues.length,
       createdAt: r.createdAt.toISOString(),
-      issues: r.issues ? r.issues.map((i: any): ValidationIssueDTO => ({
-        id: i.id,
-        validationResultId: i.validationResultId,
-        ruleCode: i.ruleCode,
-        severity: i.severity,
-        title: i.title,
-        description: i.description,
-        detailsJson: i.detailsJson || undefined,
-        isResolved: i.isResolved,
-        resolvedById: i.resolvedById || undefined,
-        resolvedAt: i.resolvedAt ? i.resolvedAt.toISOString() : undefined,
-      })) : [],
-    };
+    }));
   }
 }

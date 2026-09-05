@@ -16,6 +16,7 @@ import { RequestsPage } from '../pages/citizen/RequestsPage';
 import { OfficerDashboard } from '../pages/officer/OfficerDashboard';
 import { VerificationQueuePage } from '../pages/officer/VerificationQueuePage';
 import { ConflictResolverPage } from '../pages/officer/ConflictResolverPage';
+import { ValidationDashboardPage } from '../pages/officer/ValidationDashboardPage';
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
 import { AuditLogsPage } from '../pages/admin/AuditLogsPage';
 import { RecordDirectoryPage } from '../pages/records/RecordDirectoryPage';
@@ -171,6 +172,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={[UserRole.REVENUE_OFFICER, UserRole.ADMIN]}>
               <ConflictResolverPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/officer/validation"
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.REVENUE_OFFICER, UserRole.ADMIN]}>
+              <ValidationDashboardPage />
             </ProtectedRoute>
           }
         />

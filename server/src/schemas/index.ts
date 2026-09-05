@@ -159,12 +159,15 @@ export const batchVerifyFieldsSchema = z.object({
   createOrUpdateRecord: z.boolean().optional().default(false),
 });
 
-// Validation Engine Schemas
 export const validateRecordSchema = z.object({
   landRecordId: z.string().uuid('Valid landRecordId is required'),
 });
 
 export const runValidationSchema = validateRecordSchema;
+
+export const resolveValidationIssueSchema = z.object({
+  resolutionNotes: z.string().min(3, 'Resolution notes are required'),
+});
 
 // Conflict Resolution Schemas
 export const resolveConflictSchema = z.object({

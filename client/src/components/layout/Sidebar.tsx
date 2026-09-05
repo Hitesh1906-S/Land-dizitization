@@ -31,6 +31,7 @@ export const Sidebar: React.FC = () => {
   const officerNav = [
     { name: 'Officer Overview', path: '/officer/dashboard', icon: LayoutDashboard },
     { name: 'Verification Queue', path: '/officer/verification-queue', icon: FileCheck },
+    { name: 'Rule Validation Hub', path: '/officer/validation', icon: ShieldCheck },
     { name: 'Conflict Resolver', path: '/officer/conflicts', icon: AlertTriangle },
     { name: 'Mutation Approvals', path: '/citizen/requests', icon: GitPullRequest },
   ];
