@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/api';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Alert } from '../../components/common/Alert';
 import { Card } from '../../components/common/Card';
-import { Shield, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Shield, Mail, Lock, ArrowRight, UserCheck } from 'lucide-react';
 import { UserRole } from '@land-digitization/shared';
 
 export const LoginPage: React.FC = () => {
@@ -16,6 +16,9 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = (location.state as any)?.from?.pathname;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,21 +30,27 @@ export const LoginPage: React.FC = () => {
       const { user, token } = response.data.data;
       login(token, user);
 
-      if (user.role === UserRole.REVENUE_OFFICER) {
-        navigate('/officer/dashboard');
+      if (from && from !== '/login') {
+        navigate(from, { replace: true });
+      } else if (user.role === UserRole.REVENUE_OFFICER) {
+        navigate('/officer/dashboard', { replace: true });
       } else if (user.role === UserRole.ADMIN) {
-        navigate('/admin/dashboard');
+        navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate('/citizen/dashboard');
+        navigate('/citizen/dashboard', { replace: true });
       }
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Invalid email or password. Please try again.');
+      setError(
+        err.response?.data?.error?.message ||
+          'Authentication failed. Please check your email and password.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const setDemoCredentials = (role: 'citizen' | 'officer' | 'admin') => {
+    setError(null);
     if (role === 'citizen') {
       setEmail('citizen@example.com');
       setPassword('Password@123');
@@ -75,7 +84,7 @@ export const LoginPage: React.FC = () => {
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-900">Sign in to your account</h2>
             <p className="text-xs text-slate-500 mt-1">
-              Access your digitized land records, applications, or officer workspace.
+              Access your digitized land records, mutation requests, or official verification workspace.
             </p>
           </div>
 
@@ -113,8 +122,9 @@ export const LoginPage: React.FC = () => {
 
           {/* Quick Demo Credentials Switcher */}
           <div className="mt-6 pt-5 border-t border-slate-200">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Fill Demo Credentials:
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-govblue-600" />
+              Quick Fill Seed Credentials:
             </p>
             <div className="grid grid-cols-3 gap-1.5 text-xs">
               <button

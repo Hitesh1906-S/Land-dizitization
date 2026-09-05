@@ -35,7 +35,10 @@ export class AuthController {
         throw new BadRequestError('Email and password are required');
       }
 
-      const result = await AuthService.login(email, password);
+      const ipAddress = req.ip || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+
+      const result = await AuthService.login(email, password, ipAddress, userAgent);
       return sendSuccess(res, result, 'Login successful');
     } catch (err) {
       next(err);
@@ -58,7 +61,21 @@ export class AuthController {
 
   static async me(req: Request, res: Response, next: NextFunction) {
     try {
-      return sendSuccess(res, req.user, 'Profile retrieved');
+      if (!req.user) {
+        throw new BadRequestError('No user session active');
+      }
+
+      const profile = await AuthService.getProfile(req.user.id);
+      return sendSuccess(res, profile, 'Profile retrieved');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Client destroys token; endpoint responds with success confirmation
+      return sendSuccess(res, { loggedOut: true }, 'Logged out successfully');
     } catch (err) {
       next(err);
     }

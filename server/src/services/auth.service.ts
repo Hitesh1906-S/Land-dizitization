@@ -2,9 +2,8 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { hashPassword, comparePassword } from '../utils/hash';
-import { BadRequestError, UnauthorizedError } from '../utils/AppError';
-import { UserRole } from '../constants';
-import { AuthResponse, UserDTO } from '@land-digitization/shared';
+import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/AppError';
+import { UserRole, AuthResponse, UserDTO, AuditAction } from '@land-digitization/shared';
 
 export class AuthService {
   static async register(data: {
@@ -46,6 +45,22 @@ export class AuthService {
       },
     });
 
+    // Record Registration Audit Log
+    try {
+      await prisma.auditLog.create({
+        data: {
+          actorId: user.id,
+          actorRole: user.roleName,
+          action: AuditAction.CREATE,
+          entityType: 'User',
+          entityId: user.id,
+          snapshotDiffJson: JSON.stringify({ email: user.email, role: user.roleName }),
+        },
+      });
+    } catch {
+      // Non-blocking audit log creation
+    }
+
     const token = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
 
@@ -56,7 +71,7 @@ export class AuthService {
     };
   }
 
-  static async login(email: string, password: string): Promise<AuthResponse> {
+  static async login(email: string, password: string, ipAddress?: string, userAgent?: string): Promise<AuthResponse> {
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
@@ -65,9 +80,31 @@ export class AuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedError('Account has been deactivated. Please contact administrator.');
+    }
+
     const isMatch = await comparePassword(password, user.passwordHash);
     if (!isMatch) {
       throw new UnauthorizedError('Invalid email or password');
+    }
+
+    // Record Login Audit Log
+    try {
+      await prisma.auditLog.create({
+        data: {
+          actorId: user.id,
+          actorRole: user.roleName,
+          action: AuditAction.VERIFY,
+          entityType: 'Session',
+          entityId: user.id,
+          ipAddress,
+          userAgent,
+          snapshotDiffJson: JSON.stringify({ event: 'USER_LOGIN_SUCCESS', email: user.email }),
+        },
+      });
+    } catch {
+      // Non-blocking audit log
     }
 
     const token = this.generateAccessToken(user);
@@ -80,13 +117,25 @@ export class AuthService {
     };
   }
 
+  static async getProfile(userId: string): Promise<UserDTO> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User account not found');
+    }
+
+    return this.mapToUserDTO(user);
+  }
+
   static async refresh(refreshToken: string): Promise<{ token: string }> {
     try {
       const decoded = jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET) as any;
       const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
-      if (!user) {
-        throw new UnauthorizedError('User does not exist');
+      if (!user || !user.isActive) {
+        throw new UnauthorizedError('User does not exist or is inactive');
       }
 
       const token = this.generateAccessToken(user);
