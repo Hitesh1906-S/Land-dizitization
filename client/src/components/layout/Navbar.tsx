@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Shield, Menu, LogOut, User as UserIcon, MapPin, Layers, Search, Bell, ChevronDown } from 'lucide-react';
+import { Shield, Menu, LogOut, User as UserIcon, MapPin, Layers, Search, Bell, ChevronDown, Sparkles, Scan, FileText } from 'lucide-react';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
 
@@ -29,7 +29,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
           <span className="hidden sm:inline text-slate-400">• Smart India Hackathon Live Production</span>
         </div>
         <div className="flex items-center gap-4 text-xs font-medium">
-          <span className="hidden md:inline text-slate-300">Official Portal (हिन्दी / EN)</span>
+          <Link to="/ocr-scanner" className="text-amber-300 hover:text-white transition-colors flex items-center gap-1 font-bold">
+            <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" /> AI OCR Live
+          </Link>
+          <span className="hidden md:inline text-slate-400">|</span>
           <Link to="/map" className="text-blue-400 hover:text-white transition-colors flex items-center gap-1 font-semibold">
             <MapPin className="w-3 h-3" /> Cadastral GIS
           </Link>
@@ -66,7 +69,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
         </div>
 
         {/* Global Links on Desktop */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-1.5">
+          <Link
+            to="/ocr-scanner"
+            className="text-xs font-bold text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 px-3 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow-2xs group"
+          >
+            <Sparkles className="w-4 h-4 text-blue-600 group-hover:rotate-12 transition-transform" />
+            <span>AI OCR Scanner</span>
+            <span className="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+              LIVE
+            </span>
+          </Link>
           <Link
             to="/records"
             className="text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50/60 px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5"

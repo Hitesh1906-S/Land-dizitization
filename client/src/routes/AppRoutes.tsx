@@ -22,6 +22,7 @@ import { AuditLogsPage } from '../pages/admin/AuditLogsPage';
 import { RecordDirectoryPage } from '../pages/records/RecordDirectoryPage';
 import { RecordDetailPage } from '../pages/records/RecordDetailPage';
 import { CadastralMapPage } from '../pages/records/CadastralMapPage';
+import { OcrScannerDemoPage } from '../pages/ocr/OcrScannerDemoPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
 // Protected Route Guard with Role Verification & Loading State
@@ -91,6 +92,8 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public Pages */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/ocr-scanner" element={<OcrScannerDemoPage />} />
+      <Route path="/ocr-demo" element={<OcrScannerDemoPage />} />
       <Route
         path="/login"
         element={
