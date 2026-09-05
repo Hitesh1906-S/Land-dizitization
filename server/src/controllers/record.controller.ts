@@ -8,20 +8,44 @@ import { prisma } from '../config/database';
 export class RecordController {
   static async search(req: Request, res: Response, next: NextFunction) {
     try {
-      const { district, tehsil, village, khasraNumber, ulpin, status, page, limit } = req.query;
+      const {
+        state,
+        district,
+        tehsil,
+        village,
+        owner,
+        ownerName,
+        khasraNumber,
+        ulpin,
+        status,
+        landType,
+        minArea,
+        maxArea,
+        sortBy,
+        sortOrder,
+        page,
+        limit,
+      } = req.query;
 
       const result = await RecordService.searchRecords({
+        state: state as string,
         district: district as string,
         tehsil: tehsil as string,
         village: village as string,
+        owner: (owner || ownerName) as string,
         khasraNumber: khasraNumber as string,
         ulpin: ulpin as string,
         status: status as any,
+        landType: landType as any,
+        minArea: minArea ? parseFloat(minArea as string) : undefined,
+        maxArea: maxArea ? parseFloat(maxArea as string) : undefined,
+        sortBy: sortBy as string,
+        sortOrder: (sortOrder as 'asc' | 'desc') || 'desc',
         page: page ? parseInt(page as string, 10) : undefined,
         limit: limit ? parseInt(limit as string, 10) : undefined,
       });
 
-      return sendSuccess(res, result.records, 'Records retrieved', HTTP_STATUS.OK, result.pagination);
+      return sendSuccess(res, result.records, 'Records retrieved successfully', HTTP_STATUS.OK, result.pagination);
     } catch (err) {
       next(err);
     }
@@ -101,6 +125,30 @@ export class RecordController {
       });
 
       return sendSuccess(res, record, 'Land record created successfully', HTTP_STATUS.CREATED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { status, landType, areaInSqMeters, areaUnit, khatauniNumber, owners } = req.body;
+
+      const updated = await RecordService.updateRecord(
+        id,
+        {
+          status,
+          landType,
+          areaInSqMeters: areaInSqMeters ? parseFloat(String(areaInSqMeters)) : undefined,
+          areaUnit,
+          khatauniNumber,
+          owners,
+        },
+        req.user!.id
+      );
+
+      return sendSuccess(res, updated, 'Land record updated successfully');
     } catch (err) {
       next(err);
     }

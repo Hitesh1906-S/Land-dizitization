@@ -12,7 +12,8 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "test:data": "tsx tests/data-layer.test.ts",
     "test:api": "tsx tests/api-validation.test.ts",
-    "test:auth": "tsx tests/auth-rbac.test.ts"
+    "test:auth": "tsx tests/auth-rbac.test.ts",
+    "test:records": "tsx tests/records-crud.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.12.0",

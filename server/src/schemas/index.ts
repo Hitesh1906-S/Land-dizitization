@@ -33,7 +33,11 @@ export const createLandRecordSchema = z.object({
   ulpin: z.string().min(5, 'ULPIN is required'),
   khasraNumber: z.string().min(1, 'Khasra number is required'),
   khatauniNumber: z.string().min(1, 'Khatauni number is required'),
-  locationId: z.string().uuid('Valid locationId is required'),
+  locationId: z.string().uuid('Valid locationId is required').optional(),
+  state: z.string().optional(),
+  district: z.string().optional(),
+  tehsil: z.string().optional(),
+  village: z.string().optional(),
   areaInSqMeters: z.number().positive('Area must be positive'),
   areaUnit: z.nativeEnum(AreaUnit).default(AreaUnit.SQ_METERS),
   landType: z.nativeEnum(LandType).default(LandType.AGRICULTURAL),
@@ -65,13 +69,44 @@ export const createLandRecordSchema = z.object({
     .optional(),
 });
 
+export const updateLandRecordSchema = z.object({
+  status: z.nativeEnum(RecordStatus).optional(),
+  landType: z.nativeEnum(LandType).optional(),
+  areaInSqMeters: z.number().positive().optional(),
+  areaUnit: z.nativeEnum(AreaUnit).optional(),
+  khatauniNumber: z.string().optional(),
+  owners: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        fullName: z.string().min(1),
+        relationType: z.string().optional(),
+        guardianName: z.string().optional(),
+        identifierMasked: z.string().optional(),
+        shareFraction: z.number().min(0).max(1).optional(),
+        isPrimary: z.boolean().optional(),
+        mobileNumber: z.string().optional(),
+        address: z.string().optional(),
+      })
+    )
+    .optional(),
+});
+
 export const searchRecordsQuerySchema = z.object({
+  state: z.string().optional(),
   district: z.string().optional(),
   tehsil: z.string().optional(),
   village: z.string().optional(),
+  owner: z.string().optional(),
+  ownerName: z.string().optional(),
   khasraNumber: z.string().optional(),
   ulpin: z.string().optional(),
   status: z.nativeEnum(RecordStatus).optional(),
+  landType: z.nativeEnum(LandType).optional(),
+  minArea: z.string().optional(),
+  maxArea: z.string().optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
   page: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 1)),
   limit: z.string().optional().transform((v) => (v ? parseInt(v, 10) : 20)),
 });

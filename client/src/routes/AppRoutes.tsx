@@ -111,6 +111,7 @@ export const AppRoutes: React.FC = () => {
       <Route element={<DashboardLayout />}>
         {/* Public/Shared Directory & Maps */}
         <Route path="/records" element={<RecordDirectoryPage />} />
+        <Route path="/search" element={<RecordDirectoryPage />} />
         <Route path="/records/:id" element={<RecordDetailPage />} />
         <Route path="/map" element={<CadastralMapPage />} />
 
