@@ -134,7 +134,7 @@ export const LoginPage: React.FC = () => {
               <UserCheck className="w-3.5 h-3.5 text-govblue-600" />
               Quick Fill Seed Credentials:
             </p>
-            <div className="grid grid-cols-3 gap-1.5 text-xs">
+            <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-1.5 text-[11px] sm:text-xs">
               <button
                 type="button"
                 onClick={() => setDemoCredentials('citizen')}
@@ -147,14 +147,14 @@ export const LoginPage: React.FC = () => {
                 onClick={() => setDemoCredentials('officer')}
                 className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-center border border-slate-200 transition-colors"
               >
-                Revenue Officer
+                Officer
               </button>
               <button
                 type="button"
                 onClick={() => setDemoCredentials('admin')}
                 className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-center border border-slate-200 transition-colors"
               >
-                Administrator
+                Admin
               </button>
             </div>
           </div>
