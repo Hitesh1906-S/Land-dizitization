@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { WorkflowService } from '../services/workflow.service';
 import { sendSuccess } from '../utils/responseFormatter';
 import { HTTP_STATUS, UserRole } from '../constants';
-import { BadRequestError } from '../utils/AppError';
+import { BadRequestError, ForbiddenError } from '../utils/AppError';
 
 export class WorkflowController {
   static async submit(req: Request, res: Response, next: NextFunction) {
@@ -29,6 +29,12 @@ export class WorkflowController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const request = await WorkflowService.getRequestById(req.params.id);
+
+      // Strict ownership check: Citizens can only access their own applications
+      if (req.user!.role === UserRole.CITIZEN && request.applicantId !== req.user!.id) {
+        throw new ForbiddenError('Access forbidden: You can only view your own application requests');
+      }
+
       return sendSuccess(res, request, 'Request retrieved');
     } catch (err) {
       next(err);

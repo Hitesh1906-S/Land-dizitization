@@ -34,6 +34,7 @@ router.use('/validation', validationRoutes);
 router.use('/conflicts', conflictRoutes);
 router.use('/gis', gisRoutes);
 router.use('/workflows', workflowRoutes);
+router.use('/requests', workflowRoutes);
 router.use('/audit', auditRoutes);
 
 export default router;

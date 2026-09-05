@@ -10,7 +10,8 @@ export class WorkflowService {
     metadata?: Record<string, any>;
     documentIds?: string[];
   }): Promise<RequestDTO> {
-    const applicationNumber = `MUT-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const prefix = data.requestType === WorkflowType.NEW_DIGITIZATION ? 'DIG' : 'MUT';
+    const applicationNumber = `${prefix}-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const request = await prisma.request.create({
       data: {
@@ -37,6 +38,22 @@ export class WorkflowService {
       });
     }
 
+    // Write audit log
+    await prisma.auditLog.create({
+      data: {
+        actorId: data.applicantId,
+        actorRole: 'CITIZEN',
+        action: 'CREATE',
+        entityType: 'Request',
+        entityId: request.id,
+        snapshotDiffJson: JSON.stringify({
+          applicationNumber,
+          requestType: data.requestType,
+          stage: WorkflowStage.SUBMITTED,
+        }),
+      },
+    });
+
     return this.getRequestById(request.id);
   }
 
@@ -46,21 +63,39 @@ export class WorkflowService {
       throw new NotFoundError(`Request with ID ${requestId} not found`);
     }
 
+    const previousStage = request.stage;
+
     await prisma.request.update({
       where: { id: requestId },
       data: {
         stage,
         assignedOfficerId: officerId,
-        rejectionReason: stage === WorkflowStage.REJECTED ? rejectionReason : null,
+        rejectionReason: (stage === WorkflowStage.REJECTED || stage === WorkflowStage.NEEDS_CORRECTION) ? rejectionReason : null,
+      },
+    });
+
+    // Write audit log for stage progression
+    await prisma.auditLog.create({
+      data: {
+        actorId: officerId,
+        actorRole: 'REVENUE_OFFICER',
+        action: stage === WorkflowStage.VERIFIED ? 'APPROVE_MUTATION' : stage === WorkflowStage.REJECTED ? 'REJECT_MUTATION' : 'UPDATE',
+        entityType: 'Request',
+        entityId: requestId,
+        snapshotDiffJson: JSON.stringify({
+          previousStage,
+          newStage: stage,
+          rejectionReason,
+        }),
       },
     });
 
     return this.getRequestById(requestId);
   }
 
-  static async getRequestById(id: string): Promise<RequestDTO> {
-    const req = await prisma.request.findUnique({
-      where: { id },
+  static async getRequestById(idOrAppNo: string): Promise<RequestDTO> {
+    let req = await prisma.request.findUnique({
+      where: { id: idOrAppNo },
       include: {
         applicant: true,
         assignedOfficer: true,
@@ -72,7 +107,21 @@ export class WorkflowService {
     });
 
     if (!req) {
-      throw new NotFoundError(`Request with ID ${id} not found`);
+      req = await prisma.request.findUnique({
+        where: { applicationNumber: idOrAppNo },
+        include: {
+          applicant: true,
+          assignedOfficer: true,
+          landRecord: {
+            include: { location: true, owners: true },
+          },
+          documents: true,
+        },
+      });
+    }
+
+    if (!req) {
+      throw new NotFoundError(`Request with identifier '${idOrAppNo}' not found`);
     }
 
     return this.mapToDTO(req);

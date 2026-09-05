@@ -60,7 +60,8 @@ export const StatusBadge: React.FC<{
   switch (status) {
     case RecordStatus.VERIFIED:
     case ConflictStatus.RESOLVED:
-    case WorkflowStage.FINAL_APPROVAL:
+    case WorkflowStage.VERIFIED:
+    case 'FINAL_APPROVAL':
       return (
         <Badge variant="success" size={size} withDot>
           {formatted}
@@ -69,8 +70,10 @@ export const StatusBadge: React.FC<{
 
     case RecordStatus.PENDING_VERIFICATION:
     case ConflictStatus.INVESTIGATING:
-    case WorkflowStage.DOCUMENT_VERIFICATION:
-    case WorkflowStage.FIELD_SURVEY:
+    case WorkflowStage.UNDER_REVIEW:
+    case WorkflowStage.PROCESSING:
+    case 'DOCUMENT_VERIFICATION':
+    case 'FIELD_SURVEY':
       return (
         <Badge variant="warning" size={size} withDot>
           {formatted}
@@ -80,6 +83,7 @@ export const StatusBadge: React.FC<{
     case RecordStatus.DISPUTED:
     case ConflictStatus.OPEN:
     case WorkflowStage.REJECTED:
+    case WorkflowStage.NEEDS_CORRECTION:
       return (
         <Badge variant="danger" size={size} withDot>
           {formatted}
@@ -87,7 +91,7 @@ export const StatusBadge: React.FC<{
       );
 
     case WorkflowStage.SUBMITTED:
-    case WorkflowStage.OBJECTION_WINDOW:
+    case 'OBJECTION_WINDOW':
       return (
         <Badge variant="info" size={size} withDot>
           {formatted}
