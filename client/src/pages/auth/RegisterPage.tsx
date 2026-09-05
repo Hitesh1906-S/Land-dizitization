@@ -322,9 +322,9 @@ export const RegisterPage: React.FC = () => {
                   size="lg"
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 mt-2"
                   isLoading={isLoading}
+                  rightIcon={<ArrowRight className="w-4 h-4 shrink-0" />}
                 >
                   Complete Registration
-                  <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>
               </form>
 
