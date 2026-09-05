@@ -416,6 +416,16 @@ export interface AuditLogDTO {
   };
 }
 
+// 14. Officer Dashboard & Operations
+export interface OfficerDashboardStatsDTO {
+  totalRecords: number;
+  digitized: number;
+  verified: number;
+  pending: number;
+  conflicts: number;
+  duplicates: number;
+}
+
 // Standard API Response Wrapper
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -434,3 +444,4 @@ export interface ApiResponse<T = any> {
   };
   timestamp: string;
 }
+
