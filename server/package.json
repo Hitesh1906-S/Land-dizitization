@@ -23,7 +23,8 @@
     "test:duplicates": "tsx --test tests/duplicate-detection.test.ts",
     "test:gis": "tsx --test tests/gis-parcels.test.ts",
     "test:officer": "tsx --test tests/officer-portal.test.ts",
-    "test:admin": "tsx --test tests/admin-portal.test.ts"
+    "test:admin": "tsx --test tests/admin-portal.test.ts",
+    "test:security": "tsx --test tests/security-reliability.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.12.0",
