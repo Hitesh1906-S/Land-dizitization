@@ -19,33 +19,33 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
 }) => {
   const sizeStyles = {
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-1 text-sm',
+    sm: 'px-2.5 py-0.5 text-[11px] font-bold',
+    md: 'px-3 py-1 text-xs font-bold',
   };
 
   const variantStyles = {
-    success: 'bg-govgreen-50 text-govgreen-800 border-govgreen-200',
-    warning: 'bg-govamber-50 text-govamber-800 border-govamber-200',
-    danger: 'bg-govred-50 text-govred-800 border-govred-200',
-    info: 'bg-govblue-50 text-govblue-800 border-govblue-200',
-    neutral: 'bg-slate-100 text-slate-700 border-slate-200',
-    navy: 'bg-govnavy-50 text-govnavy-800 border-govnavy-200',
+    success: 'bg-emerald-50 text-emerald-800 border-emerald-200/80 shadow-2xs',
+    warning: 'bg-amber-50 text-amber-800 border-amber-200/80 shadow-2xs',
+    danger: 'bg-rose-50 text-rose-800 border-rose-200/80 shadow-2xs',
+    info: 'bg-blue-50 text-blue-800 border-blue-200/80 shadow-2xs',
+    neutral: 'bg-slate-100 text-slate-700 border-slate-200/90 shadow-2xs',
+    navy: 'bg-govnavy-50 text-govnavy-900 border-govnavy-200 shadow-2xs',
   };
 
   const dotColorStyles = {
-    success: 'bg-govgreen-600',
-    warning: 'bg-govamber-600',
-    danger: 'bg-govred-600',
-    info: 'bg-govblue-600',
-    neutral: 'bg-slate-500',
-    navy: 'bg-govnavy-700',
+    success: 'bg-emerald-500 shadow-xs shadow-emerald-500/50',
+    warning: 'bg-amber-500 shadow-xs shadow-amber-500/50',
+    danger: 'bg-rose-500 shadow-xs shadow-rose-500/50',
+    info: 'bg-blue-500 shadow-xs shadow-blue-500/50',
+    neutral: 'bg-slate-400',
+    navy: 'bg-govnavy-900',
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-medium rounded border ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border tracking-wide uppercase font-sans ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
     >
-      {withDot && <span className={`w-1.5 h-1.5 rounded-full ${dotColorStyles[variant]}`} />}
+      {withDot && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColorStyles[variant]}`} />}
       {children}
     </span>
   );

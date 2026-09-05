@@ -20,18 +20,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200 shadow-gov-sm">
+    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       {/* Top Official Gov Ribbon */}
       <div className="bg-govnavy-950 text-slate-300 text-[11px] py-1 px-4 sm:px-6 lg:px-8 flex items-center justify-between border-b border-govnavy-900">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-govgreen-500 inline-block" />
-          <span className="font-semibold text-white tracking-wide">Government Digital Service</span>
-          <span className="hidden sm:inline text-slate-400">• Smart India Hackathon Production Service</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-xs animate-pulse" />
+          <span className="font-semibold text-white tracking-wide">Government of India • Land Records Mission</span>
+          <span className="hidden sm:inline text-slate-400">• Smart India Hackathon Live Production</span>
         </div>
         <div className="flex items-center gap-4 text-xs font-medium">
-          <span className="hidden md:inline">Language: English (हिन्दी)</span>
-          <Link to="/map" className="hover:text-white transition-colors">
-            Cadastral GIS
+          <span className="hidden md:inline text-slate-300">Official Portal (हिन्दी / EN)</span>
+          <Link to="/map" className="text-blue-400 hover:text-white transition-colors flex items-center gap-1 font-semibold">
+            <MapPin className="w-3 h-3" /> Cadastral GIS
           </Link>
         </div>
       </div>
@@ -43,22 +43,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
           <button
             type="button"
             onClick={onToggleMobileDrawer}
-            className="md:hidden p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-govnavy-900"
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors"
             aria-label="Open Navigation Menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </button>
 
-          {/* Logo Brand */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-md bg-govnavy-900 text-white flex items-center justify-center shadow-gov-sm border border-govnavy-800">
-              <Shield className="w-6 h-6 text-white" />
+          {/* Logo Brand with Rich Gradient Glow */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-govnavy-900 via-govnavy-950 to-blue-900 text-white flex items-center justify-center shadow-md shadow-govnavy-900/20 border border-blue-500/30 group-hover:scale-105 transition-transform duration-200">
+              <Shield className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <div className="font-bold text-lg text-govnavy-900 tracking-tight leading-none">
-                Bhoomi<span className="text-govblue-600">Setu</span>
+              <div className="font-black text-xl text-slate-900 tracking-tight leading-none font-display">
+                Bhoomi<span className="text-blue-600">Setu</span>
               </div>
-              <div className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase mt-0.5">
+              <div className="text-[10px] text-slate-500 font-bold tracking-wider uppercase mt-0.5">
                 Land Record Digitization & Validation
               </div>
             </div>
@@ -66,20 +66,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
         </div>
 
         {/* Global Links on Desktop */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-1">
           <Link
             to="/records"
-            className="text-sm font-semibold text-slate-600 hover:text-govnavy-900 transition-colors flex items-center gap-1.5"
+            className="text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50/60 px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5"
           >
-            <Search className="w-4 h-4 text-slate-500" />
+            <Search className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
             Registry Directory
           </Link>
           <Link
             to="/map"
-            className="text-sm font-semibold text-slate-600 hover:text-govnavy-900 transition-colors flex items-center gap-1.5"
+            className="text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-blue-50/60 px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5"
           >
-            <MapPin className="w-4 h-4 text-slate-500" />
-            Cadastral GIS
+            <MapPin className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
+            Cadastral GIS Map
           </Link>
         </nav>
 
@@ -90,23 +90,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200 focus:outline-none"
+                className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-100 transition-all border border-slate-200/80 bg-slate-50/50 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-600"
               >
-                <div className="w-8 h-8 rounded-full bg-govnavy-900 text-white flex items-center justify-center text-xs font-bold shadow-gov-sm">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-govnavy-900 to-blue-700 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                   {user.fullName.charAt(0)}
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[140px]">
+                  <span className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[130px]">
                     {user.fullName}
                   </span>
-                  <span className="text-[10px] font-semibold text-govblue-700 uppercase tracking-wide">
+                  <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide">
                     {user.role.replace(/_/g, ' ')}
                   </span>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
-              {/* Profile Dropdown Menu */}
+              {/* Profile Dropdown Menu with Glassmorphism */}
               {profileDropdownOpen && (
                 <>
                   <div
@@ -114,42 +114,53 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
                     onClick={() => setProfileDropdownOpen(false)}
                     aria-hidden="true"
                   />
-                  <div className="absolute right-0 mt-2 w-56 rounded-md bg-white shadow-gov-lg border border-slate-200 py-1.5 z-50 text-xs text-slate-700">
-                    <div className="px-3.5 py-2 border-b border-slate-100">
-                      <p className="font-bold text-slate-900">{user.fullName}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                      <div className="mt-1.5">
+                  <div className="absolute right-0 mt-2 w-60 rounded-xl bg-white/95 backdrop-blur-xl shadow-xl border border-slate-200 py-2 z-50 text-xs text-slate-700 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-4 py-2.5 border-b border-slate-100">
+                      <p className="font-bold text-slate-900 text-sm">{user.fullName}</p>
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">{user.email}</p>
+                      <div className="mt-2">
                         <Badge variant="navy" size="sm">
                           {user.role.replace(/_/g, ' ')}
                         </Badge>
                       </div>
                     </div>
 
-                    <Link
-                      to={
-                        user.role === 'ADMIN'
-                          ? '/admin/dashboard'
-                          : user.role === 'REVENUE_OFFICER'
-                          ? '/officer/dashboard'
-                          : '/citizen/dashboard'
-                      }
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="block px-3.5 py-2 hover:bg-slate-50 text-slate-800 font-medium"
-                    >
-                      My Dashboard
-                    </Link>
+                    <div className="py-1">
+                      <Link
+                        to={
+                          user.role === 'ADMIN'
+                            ? '/admin/dashboard'
+                            : user.role === 'REVENUE_OFFICER'
+                            ? '/officer/dashboard'
+                            : '/citizen/dashboard'
+                        }
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="block px-4 py-2 hover:bg-blue-50 text-slate-800 font-semibold transition-colors"
+                      >
+                        My Dashboard
+                      </Link>
+                      <Link
+                        to="/records"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="block px-4 py-2 hover:bg-blue-50 text-slate-800 font-medium transition-colors"
+                      >
+                        Public Land Directory
+                      </Link>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        handleLogout();
-                      }}
-                      className="w-full text-left px-3.5 py-2 hover:bg-govred-50 text-govred-700 font-medium flex items-center gap-2 border-t border-slate-100"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      Sign Out
-                    </button>
+                    <div className="pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-semibold flex items-center gap-2 transition-colors"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -157,12 +168,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileDrawer }) => {
           ) : (
             <div className="flex items-center gap-2">
               <Link to="/login">
-                <Button variant="secondary" size="sm">
+                <Button variant="secondary" size="sm" className="font-bold shadow-xs">
                   Sign In
                 </Button>
               </Link>
               <Link to="/register" className="hidden sm:inline-block">
-                <Button variant="primary" size="sm">
+                <Button variant="primary" size="sm" className="bg-govnavy-900 hover:bg-govnavy-950 font-bold shadow-sm">
                   Register
                 </Button>
               </Link>
