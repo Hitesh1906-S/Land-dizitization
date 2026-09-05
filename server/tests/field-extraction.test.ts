@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { DeterministicFieldExtractor } from '../src/services/ocr/extractors/deterministic.extractor.js';
-import { FieldExtractionFactory } from '../src/services/ocr/extractors/index.js';
+import { DeterministicFieldExtractor } from '../src/services/ocr/extractors/deterministic.extractor';
+import { FieldExtractionFactory } from '../src/services/ocr/extractors/index';
 
 describe('Structured Land Record Field Extraction Pipeline', () => {
   const extractor = new DeterministicFieldExtractor();

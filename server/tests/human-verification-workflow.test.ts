@@ -1,8 +1,8 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { prisma } from '../src/config/database.js';
-import { OcrService } from '../src/services/ocr/ocr.adapter.js';
-import { UserRole } from '../src/constants/index.js';
+import { prisma } from '../src/config/database';
+import { OcrService } from '../src/services/ocr/ocr.adapter';
+import { UserRole } from '../src/constants/index';
 
 describe('Human Verification Workflow for AI/OCR Results', () => {
   let officerId: string;
@@ -158,7 +158,7 @@ describe('Human Verification Workflow for AI/OCR Results', () => {
     assert.equal(res.isVerified, true);
     assert.equal(res.verifiedValue, '142/4/1');
 
-    const meta = JSON.parse(res.boundingBoxJson!);
+    const meta = typeof res.boundingBoxJson === 'string' ? JSON.parse(res.boundingBoxJson) : (res.boundingBoxJson || {});
     assert.equal(meta.verificationState, 'CORRECTED');
     assert.equal(meta.isUncertain, false);
     assert.equal(meta.history?.length, 1);

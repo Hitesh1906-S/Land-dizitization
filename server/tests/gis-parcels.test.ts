@@ -1,8 +1,8 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { prisma } from '../src/config/database.js';
-import { GisService } from '../src/services/gis.service.js';
-import { UserRole } from '../src/constants/index.js';
+import { prisma } from '../src/config/database';
+import { GisService } from '../src/services/gis.service';
+import { UserRole } from '../src/constants/index';
 
 describe('Cadastral GIS Mapping & Spatial Parcel Module', () => {
   let officerId: string;

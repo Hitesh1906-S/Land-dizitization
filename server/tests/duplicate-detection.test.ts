@@ -1,12 +1,12 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { prisma } from '../src/config/database.js';
-import { SimilarityUtil } from '../src/services/duplicate/similarity.util.js';
-import { DuplicateDetectorService } from '../src/services/duplicate/duplicate-detector.service.js';
-import { ConflictService } from '../src/services/conflict.service.js';
-import { ValidationEngine } from '../src/services/validation/validation.engine.js';
+import { prisma } from '../src/config/database';
+import { SimilarityUtil } from '../src/services/duplicate/similarity.util';
+import { DuplicateDetectorService } from '../src/services/duplicate/duplicate-detector.service';
+import { ConflictService } from '../src/services/conflict.service';
+import { ValidationEngine } from '../src/services/validation/validation.engine';
 import { ConflictStatus, ConflictType } from '@land-digitization/shared';
-import { UserRole } from '../src/constants/index.js';
+import { UserRole } from '../src/constants/index';
 
 describe('Duplicate-Record Detection & Human Resolution Engine', () => {
   let officerId: string;

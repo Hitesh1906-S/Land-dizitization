@@ -1,9 +1,9 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { prisma } from '../src/config/database.js';
-import { ValidationEngine } from '../src/services/validation/validation.engine.js';
-import { ValidationRuleRegistry } from '../src/services/validation/rules/index.js';
-import { UserRole } from '../src/constants/index.js';
+import { prisma } from '../src/config/database';
+import { ValidationEngine } from '../src/services/validation/validation.engine';
+import { ValidationRuleRegistry } from '../src/services/validation/rules/index';
+import { UserRole } from '../src/constants/index';
 
 describe('Land-Record Deterministic Validation Engine', () => {
   let officerId: string;
@@ -158,8 +158,8 @@ describe('Land-Record Deterministic Validation Engine', () => {
     assert.ok(ownerIssue);
     assert.ok(ownerIssue.conflictingValues);
     assert.ok(ownerIssue.conflictingValues.actual.includes('70.00%'));
-    assert.ok(ownerIssue.explanation.length > 10);
-    assert.ok(ownerIssue.recommendedAction.length > 10);
+    assert.ok(ownerIssue.explanation && ownerIssue.explanation.length > 10);
+    assert.ok(ownerIssue.recommendedAction && ownerIssue.recommendedAction.length > 10);
   });
 
   it('4. Officer resolves an identified validation issue with audit remarks', async () => {
