@@ -10,6 +10,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:studio": "prisma studio",
     "test:data": "tsx tests/data-layer.test.ts",
     "test:api": "tsx tests/api-validation.test.ts",
     "test:auth": "tsx tests/auth-rbac.test.ts",
