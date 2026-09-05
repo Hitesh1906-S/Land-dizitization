@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { Search, Filter, MapPin, Eye, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+import { Select } from '../../components/common/Select';
 import { StatusBadge } from '../../components/common/Badge';
 import { RecordStatus } from '@land-digitization/shared';
+import { Search, MapPin, Eye, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const RecordDirectoryPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,74 +53,91 @@ export const RecordDirectoryPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Public Land Registry Directory</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Search and verify computerized land records, ULPIN codes, and ownership titles
-        </p>
-      </div>
+      <PageHeader
+        title="Public Land Records Directory"
+        description="Search and verify official computerized land records, cadastral survey numbers, and ownership titles across jurisdictions."
+        breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Land Registry' }]}
+        actions={
+          <Link to="/map">
+            <Button variant="secondary" size="sm" leftIcon={<MapPin className="w-4 h-4 text-govblue-600" />}>
+              Open Cadastral GIS
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Search Filter Bar */}
-      <div className="glass-panel p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by Khasra No, ULPIN, or Owner Name..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-          />
+      <Card className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div className="sm:col-span-6">
+            <Input
+              isSearch
+              placeholder="Search by Khasra No, ULPIN, or Owner Name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <Select
+              options={[
+                { value: 'Jaipur', label: 'District: Jaipur' },
+                { value: 'Jodhpur', label: 'District: Jodhpur' },
+              ]}
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <Select
+              options={[
+                { value: 'Sanganer', label: 'Tehsil: Sanganer' },
+                { value: 'Amer', label: 'Tehsil: Amer' },
+              ]}
+            />
+          </div>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <select className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-            <option>District: Jaipur</option>
-          </select>
-          <select className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
-            <option>Tehsil: Sanganer</option>
-          </select>
-        </div>
-      </div>
+      </Card>
 
       {/* Record Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sampleRecords.map((record) => (
-          <div key={record.id} className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 glass-panel-hover">
+          <Card key={record.id} className="p-5 space-y-3.5 gov-card-interactive">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-semibold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">
+              <span className="font-mono text-xs font-bold text-govblue-800 bg-govblue-50 px-2 py-0.5 rounded border border-govblue-200">
                 {record.ulpin}
               </span>
               <StatusBadge status={record.status} />
             </div>
 
             <div>
-              <h3 className="text-lg font-bold text-white">Khasra {record.khasraNumber}</h3>
-              <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-500" />
+              <h3 className="text-base font-bold text-slate-900">Khasra No: {record.khasraNumber}</h3>
+              <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                <MapPin className="w-3.5 h-3.5 text-slate-400" />
                 {record.village}, {record.tehsil}, {record.district}
               </p>
             </div>
 
-            <div className="py-2 border-y border-slate-800/80 text-xs space-y-1">
+            <div className="py-2.5 bg-slate-50 rounded p-3 text-xs space-y-1.5 border border-slate-100">
               <div className="flex justify-between">
                 <span className="text-slate-500">Primary Owner:</span>
-                <span className="font-semibold text-slate-200">{record.primaryOwner}</span>
+                <span className="font-semibold text-slate-900">{record.primaryOwner}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Khatauni No:</span>
+                <span className="font-semibold text-slate-900">{record.khatauniNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Total Area:</span>
-                <span className="font-semibold text-slate-200">{record.areaInSqMeters} sq.m</span>
+                <span className="font-semibold text-slate-900">{record.areaInSqMeters} sq.m</span>
               </div>
             </div>
 
             <div className="pt-1 flex justify-end">
               <Link to={`/records/${record.id}`}>
-                <Button variant="outline" size="sm">
-                  <Eye className="w-3.5 h-3.5 mr-1" />
+                <Button variant="outline" size="sm" leftIcon={<Eye className="w-3.5 h-3.5" />}>
                   View Details
                 </Button>
               </Link>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

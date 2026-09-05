@@ -1,15 +1,16 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShieldCheck, MapPin, FileText, ArrowLeft, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { StatusBadge } from '../../components/common/Badge';
 import { RecordStatus } from '@land-digitization/shared';
 import { LeafletParcelMap } from '../../components/maps/LeafletParcelMap';
+import { ArrowLeft, Layers, MapPin, ShieldCheck, FileText, CheckCircle2 } from 'lucide-react';
 
 export const RecordDetailPage: React.FC = () => {
   const { id } = useParams();
 
-  // Mock parcel GeoJSON geometry for demo
   const sampleGeoJSON: any = {
     type: 'FeatureCollection',
     features: [
@@ -37,63 +38,71 @@ export const RecordDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link to="/records" className="text-sm text-slate-400 hover:text-white flex items-center gap-1.5">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Directory
-        </Link>
-        <StatusBadge status={RecordStatus.VERIFIED} />
-      </div>
+      <PageHeader
+        title="Land Record Dossier"
+        description="Comprehensive ownership chain, registered deed history, and geo-referenced boundary coordinates."
+        breadcrumbs={[
+          { label: 'Registry', href: '/records' },
+          { label: `Khasra 102/4` },
+        ]}
+        badge={<StatusBadge status={RecordStatus.VERIFIED} />}
+        actions={
+          <Link to="/records">
+            <Button variant="secondary" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+              Back to Directory
+            </Button>
+          </Link>
+        }
+      />
 
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <Card className="p-6 space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <span className="text-xs font-mono font-semibold text-emerald-400 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30">
+            <span className="font-mono text-xs font-bold text-govblue-800 bg-govblue-50 px-2.5 py-1 rounded border border-govblue-200">
               ULPIN: RJ-JP-2024-8841
             </span>
-            <h1 className="text-2xl font-bold text-white mt-2">Khasra No 102/4 (Khatauni 45-B)</h1>
-            <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
-              <MapPin className="w-4 h-4 text-slate-500" />
+            <h2 className="text-xl font-bold text-slate-900 mt-2">Khasra No 102/4 (Khatauni 45-B)</h2>
+            <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+              <MapPin className="w-3.5 h-3.5 text-slate-400" />
               Rampur Village, Sanganer Tehsil, Jaipur District, Rajasthan
             </p>
           </div>
           <div className="flex gap-2">
             <Link to="/map">
-              <Button size="sm">
-                <Layers className="w-4 h-4 mr-1.5" />
-                Fullscreen GIS
+              <Button size="sm" variant="primary" leftIcon={<Layers className="w-4 h-4" />}>
+                Fullscreen GIS Map
               </Button>
             </Link>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-y border-slate-800/80 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg text-xs border border-slate-100">
           <div>
             <span className="text-slate-500">Registered Area</span>
-            <p className="text-sm font-semibold text-white mt-0.5">4,050 sq.meters</p>
+            <p className="text-sm font-bold text-slate-900 mt-0.5">4,050 sq.meters</p>
           </div>
           <div>
             <span className="text-slate-500">Land Classification</span>
-            <p className="text-sm font-semibold text-white mt-0.5">Agricultural (Irrigated)</p>
+            <p className="text-sm font-bold text-slate-900 mt-0.5">Agricultural</p>
           </div>
           <div>
-            <span className="text-slate-500">Primary Owner</span>
-            <p className="text-sm font-semibold text-white mt-0.5">Ram Kumar Sharma (100%)</p>
+            <span className="text-slate-500">Primary Title Holder</span>
+            <p className="text-sm font-bold text-slate-900 mt-0.5">Ram Kumar Sharma</p>
           </div>
           <div>
             <span className="text-slate-500">Last Mutation Order</span>
-            <p className="text-sm font-semibold text-white mt-0.5">MUT-2024-0012</p>
+            <p className="text-sm font-bold text-slate-900 mt-0.5">MUT-2024-0012</p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Cadastral Boundary Map Preview */}
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
-        <h2 className="text-lg font-bold text-white">Cadastral Boundary & Geo-Coordinates</h2>
-        <div className="h-80 w-full rounded-xl overflow-hidden">
+      <Card className="p-6 space-y-4">
+        <CardTitle>Cadastral Boundary Geo-Coordinates</CardTitle>
+        <div className="h-80 w-full rounded-lg overflow-hidden border border-slate-200">
           <LeafletParcelMap geojsonData={sampleGeoJSON} center={[26.9125, 75.787]} zoom={15} />
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

@@ -1,51 +1,100 @@
 import React from 'react';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { StatCard } from '../../components/common/StatCard';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
+import { Button } from '../../components/common/Button';
+import { Badge } from '../../components/common/Badge';
 import { Users, Server, ShieldCheck, Activity, ScrollText, Cpu } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '../../components/common/Button';
 
 export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">System Administrator Console</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Overall system health, user jurisdiction access, OCR engine throughput, and audit metrics
-          </p>
-        </div>
-        <Link to="/admin/audit-logs">
-          <Button size="md">
-            <ScrollText className="w-4 h-4 mr-2" />
-            Inspect Audit Logs
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="System Administration Console"
+        description="Monitor system throughput, OCR extraction clusters, jurisdiction officer assignments, and tamper-proof audit trails."
+        breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Administrator Console' }]}
+        badge={
+          <Badge variant="navy" size="sm">
+            National Admin Access
+          </Badge>
+        }
+        actions={
+          <Link to="/admin/audit-logs">
+            <Button size="sm" variant="primary" leftIcon={<ScrollText className="w-4 h-4" />}>
+              Audit Trail Logs
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Active Users" value="284" icon={Users} color="emerald" change="+12" changeType="positive" />
-        <StatCard title="OCR Jobs Processed" value="1,842" icon={Cpu} color="blue" />
-        <StatCard title="System Health" value="99.98%" icon={Activity} color="purple" />
-        <StatCard title="Security Events" value="0 Flagged" icon={ShieldCheck} color="emerald" />
+        <StatCard
+          title="Active System Users"
+          value="284 Users"
+          icon={Users}
+          color="navy"
+          change="+12"
+          changeType="positive"
+        />
+        <StatCard
+          title="OCR Jobs Processed"
+          value="1,842 Jobs"
+          icon={Cpu}
+          color="blue"
+          description="Avg latency: 1.4s"
+        />
+        <StatCard
+          title="System Availability"
+          value="99.98%"
+          icon={Activity}
+          color="green"
+          badgeText="Operational"
+        />
+        <StatCard
+          title="Security Flags"
+          value="0 Issues"
+          icon={ShieldCheck}
+          color="green"
+          description="All checksums valid"
+        />
       </div>
 
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
-        <h2 className="text-lg font-bold text-white">Core Service Integrations</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <span className="text-emerald-400 font-semibold">PostgreSQL & PostGIS Database</span>
-            <p className="text-slate-300 mt-1">Status: Connected (Pool: 10/10)</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Core Service Integration Health</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-slate-900">Database Engine</span>
+                <Badge variant="success" size="sm">Active</Badge>
+              </div>
+              <p className="text-slate-600">SQLite / PostgreSQL + PostGIS Spatial</p>
+              <p className="text-[11px] text-slate-500 mt-1">Pool: 10 connections active</p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-slate-900">AI OCR Extraction Engine</span>
+                <Badge variant="success" size="sm">Ready</Badge>
+              </div>
+              <p className="text-slate-600">Gemini 1.5/2.5 Flash Multimodal LLM</p>
+              <p className="text-[11px] text-slate-500 mt-1">Bilingual English + Hindi support</p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-slate-900">Spatial Topology Engine</span>
+                <Badge variant="success" size="sm">Active</Badge>
+              </div>
+              <p className="text-slate-600">Turf.js & GeoJSON Cadastral Layer</p>
+              <p className="text-[11px] text-slate-500 mt-1">Polygon intersection tolerance: 5m²</p>
+            </div>
           </div>
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <span className="text-emerald-400 font-semibold">Gemini 2.5 Flash Multimodal OCR</span>
-            <p className="text-slate-300 mt-1">Status: Active & Ready</p>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <span className="text-emerald-400 font-semibold">Tesseract Local Offline Fallback</span>
-            <p className="text-slate-300 mt-1">Status: Installed (eng+hin)</p>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

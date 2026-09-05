@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, Sparkles, ArrowRight } from 'lucide-react';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+import { Select } from '../../components/common/Select';
+import { Alert } from '../../components/common/Alert';
+import { Badge } from '../../components/common/Badge';
 import { DocumentType } from '@land-digitization/shared';
+import { Upload, FileText, CheckCircle2, ArrowRight, ArrowLeft, Sparkles, ShieldCheck } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 export const DigitizeWizardPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocumentType>(DocumentType.REGISTRATION_DEED);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { showToast } = useToast();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -20,59 +28,68 @@ export const DigitizeWizardPage: React.FC = () => {
     setTimeout(() => {
       setIsProcessing(false);
       setStep(2);
+      showToast('OCR extraction completed with 94.2% confidence', 'success', 'AI Extraction Complete');
     }, 1500);
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Digitize Land Document</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Upload deed, jamabandi, or 7/12 extract for AI OCR extraction and validation
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <PageHeader
+        title="Digitize Legacy Land Document"
+        description="Upload scanned physical Jamabandi records or registered sale deeds for automated OCR AI field extraction and multi-tier validation."
+        breadcrumbs={[
+          { label: 'Citizen Portal', href: '/citizen/dashboard' },
+          { label: 'Digitize Wizard' },
+        ]}
+      />
 
-      {/* Stepper Header */}
-      <div className="flex items-center justify-between glass-panel p-4 rounded-xl border border-slate-800">
-        {[
-          { num: 1, title: 'Upload & OCR' },
-          { num: 2, title: 'Verify Extracted Fields' },
-          { num: 3, title: 'Validation & Submit' },
-        ].map((s) => (
-          <div key={s.num} className="flex items-center gap-3">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                step >= s.num ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'
-              }`}
-            >
-              {s.num}
+      {/* Stepper Steps Ribbon */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between">
+          {[
+            { num: 1, title: 'Document Upload & OCR' },
+            { num: 2, title: 'Audit Extracted Fields' },
+            { num: 3, title: 'Validation & Submission' },
+          ].map((s, idx) => (
+            <div key={s.num} className="flex items-center gap-2 sm:gap-3">
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                  step >= s.num
+                    ? 'bg-govnavy-900 text-white shadow-gov-sm'
+                    : 'bg-slate-100 text-slate-500 border border-slate-300'
+                }`}
+              >
+                {s.num}
+              </div>
+              <span
+                className={`text-xs font-semibold hidden sm:inline ${
+                  step >= s.num ? 'text-slate-900' : 'text-slate-500'
+                }`}
+              >
+                {s.title}
+              </span>
+              {idx < 2 && <div className="hidden sm:block w-8 h-[1px] bg-slate-200" />}
             </div>
-            <span className={`text-sm font-medium ${step >= s.num ? 'text-white' : 'text-slate-400'}`}>
-              {s.title}
-            </span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Card>
 
+      {/* Step 1: Upload & Engine Selection */}
       {step === 1 && (
-        <div className="glass-panel p-8 rounded-2xl border border-slate-800 space-y-6">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Select Document Type
-            </label>
-            <select
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as DocumentType)}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
-            >
-              <option value={DocumentType.REGISTRATION_DEED}>Registered Sale Deed / Title Deed</option>
-              <option value={DocumentType.KHATAUNI_7_12}>7/12 Extract / Jamabandi Record</option>
-              <option value={DocumentType.MUTATION_CERTIFICATE}>Mutation Sanction Order</option>
-              <option value={DocumentType.SURVEY_MAP}>Cadastral Survey Map</option>
-            </select>
-          </div>
+        <Card className="p-6 space-y-6">
+          <Select
+            label="Document Classification"
+            value={docType}
+            onChange={(e) => setDocType(e.target.value as DocumentType)}
+            options={[
+              { value: DocumentType.REGISTRATION_DEED, label: 'Registered Sale Deed / Title Deed' },
+              { value: DocumentType.KHATAUNI_7_12, label: '7/12 Extract / Jamabandi Record' },
+              { value: DocumentType.MUTATION_CERTIFICATE, label: 'Mutation Sanction Order' },
+              { value: DocumentType.SURVEY_MAP, label: 'Cadastral Survey Map' },
+            ]}
+          />
 
-          <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-2xl p-8 text-center transition-colors">
+          <div className="border-2 border-dashed border-slate-300 hover:border-govnavy-800 rounded-lg p-8 text-center transition-colors bg-slate-50/50">
             <input
               type="file"
               id="file-upload"
@@ -81,99 +98,92 @@ export const DigitizeWizardPage: React.FC = () => {
               className="hidden"
             />
             <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-4">
+              <div className="w-12 h-12 rounded-full bg-govblue-50 border border-govblue-200 flex items-center justify-center text-govblue-700 mb-3">
                 <Upload className="w-6 h-6" />
               </div>
-              <p className="text-base font-semibold text-white">
-                {file ? file.name : 'Click to select document or drag & drop'}
+              <p className="text-sm font-bold text-slate-800">
+                {file ? file.name : 'Click to select scanned document or drag & drop'}
               </p>
-              <p className="text-xs text-slate-400 mt-1">PDF, PNG, JPG or TIFF up to 25MB</p>
+              <p className="text-xs text-slate-500 mt-1">PDF, JPG, PNG, TIFF up to 25MB</p>
             </label>
           </div>
 
-          <div className="flex justify-end">
-            <Button size="lg" disabled={!file} isLoading={isProcessing} onClick={handleStartOcr}>
-              <Sparkles className="w-4 h-4 mr-2" />
-              Run Intelligent OCR Extraction
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-slate-500 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-govgreen-700" />
+              SHA-256 Checksum Computed upon upload
+            </span>
+            <Button
+              size="md"
+              disabled={!file}
+              isLoading={isProcessing}
+              onClick={handleStartOcr}
+              leftIcon={<Sparkles className="w-4 h-4" />}
+            >
+              Run AI OCR Extraction
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
+      {/* Step 2: Extracted Metadata Verification */}
       {step === 2 && (
-        <div className="glass-panel p-8 rounded-2xl border border-slate-800 space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <Card className="p-6 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <h2 className="text-lg font-bold text-white">Extracted Metadata</h2>
-              <p className="text-xs text-slate-400">Review and adjust fields parsed by OCR</p>
+              <h3 className="text-base font-bold text-slate-900">Extracted Land Record Fields</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Review and correct parsed key-value pairs before running mathematical validation.
+              </p>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+            <Badge variant="success" withDot>
               Confidence: 94.2%
-            </span>
+            </Badge>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Khasra Number</label>
-              <input
-                type="text"
-                defaultValue="102/4"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Khatauni Number</label>
-              <input
-                type="text"
-                defaultValue="45-B"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">District</label>
-              <input
-                type="text"
-                defaultValue="Jaipur"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Village</label>
-              <input
-                type="text"
-                defaultValue="Rampur"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white"
-              />
-            </div>
+            <Input label="Khasra / Survey Number" defaultValue="102/4" required />
+            <Input label="Khatauni / Account Number" defaultValue="45-B" required />
+            <Input label="District" defaultValue="Jaipur" required />
+            <Input label="Tehsil" defaultValue="Sanganer" required />
+            <Input label="Village Name" defaultValue="Rampur" required />
+            <Input label="Registered Area (sq.meters)" defaultValue="4050" type="number" required />
           </div>
 
-          <div className="flex justify-between pt-4">
-            <Button variant="ghost" onClick={() => setStep(1)}>
+          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Extracted Owner Titles & Shares
+            </label>
+            <Input defaultValue="Ram Kumar Sharma (100% Share - S/O Mohan Lal)" />
+          </div>
+
+          <div className="flex justify-between pt-3 border-t border-slate-100">
+            <Button variant="secondary" onClick={() => setStep(1)} leftIcon={<ArrowLeft className="w-4 h-4" />}>
               Back
             </Button>
-            <Button onClick={() => setStep(3)}>
-              Proceed to Validation
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <Button variant="primary" onClick={() => setStep(3)} rightIcon={<ArrowRight className="w-4 h-4" />}>
+              Verify & Submit Application
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
+      {/* Step 3: Success Confirmation */}
       {step === 3 && (
-        <div className="glass-panel p-8 rounded-2xl border border-slate-800 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+        <Card className="p-8 text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-govgreen-50 border border-govgreen-200 flex items-center justify-center text-govgreen-700 mx-auto">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-white">Digitization Request Submitted!</h2>
-          <p className="text-sm text-slate-400 max-w-md mx-auto">
-            Your document has been cryptographically hashed and forwarded to the Revenue Officer's verification queue.
+          <h2 className="text-xl font-bold text-slate-900">Digitization Application Registered!</h2>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+            Application <span className="font-mono font-bold text-slate-900">DIG-2026-928104</span> has been queued for Revenue Officer verification and mathematical rule clearance.
           </p>
-          <div className="pt-4">
+          <div className="pt-3">
             <Button onClick={() => (window.location.href = '/citizen/requests')}>
-              View Application Status
+              View Application in Pipeline
             </Button>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

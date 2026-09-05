@@ -1,90 +1,142 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { StatCard } from '../../components/common/StatCard';
-import { Shield, FileCheck, GitPullRequest, MapPin, ArrowUpRight, PlusCircle, Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { Badge, StatusBadge } from '../../components/common/Badge';
+import { Shield, MapPin, GitPullRequest, FileCheck, PlusCircle, Search, ArrowRight, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { RecordStatus, WorkflowStage } from '@land-digitization/shared';
 
 export const CitizenDashboard: React.FC = () => {
   const { user } = useAuth();
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Welcome, {user?.fullName}</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Manage your registered land parcels, track mutation workflows, and digitize legacy deeds.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link to="/citizen/digitize">
-            <Button size="md">
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Digitize Deed
-            </Button>
-          </Link>
-          <Link to="/records">
-            <Button variant="secondary" size="md">
-              <Search className="w-4 h-4 mr-2" />
-              Search Registry
-            </Button>
-          </Link>
-        </div>
-      </div>
+      {/* Official Page Header */}
+      <PageHeader
+        title={`Citizen Services Dashboard`}
+        description={`Welcome, ${user?.fullName || 'Citizen'}. Review your verified cadastral holdings, track mutation applications, and digitize legacy deeds.`}
+        breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Citizen Portal' }]}
+        badge={
+          <Badge variant="navy" size="sm">
+            Citizen Profile
+          </Badge>
+        }
+        actions={
+          <>
+            <Link to="/citizen/digitize">
+              <Button size="sm" variant="primary" leftIcon={<PlusCircle className="w-4 h-4" />}>
+                Digitize Land Deed
+              </Button>
+            </Link>
+            <Link to="/records">
+              <Button size="sm" variant="secondary" leftIcon={<Search className="w-4 h-4" />}>
+                Public Search
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Owned Parcels" value="2" icon={Shield} color="emerald" change="+1" changeType="positive" />
-        <StatCard title="Total Land Area" value="3.4 Hectares" icon={MapPin} color="blue" />
-        <StatCard title="Active Requests" value="1" icon={GitPullRequest} color="amber" />
-        <StatCard title="Digitized Records" value="100%" icon={FileCheck} color="purple" />
+        <StatCard
+          title="Verified Titles"
+          value="1 Parcel"
+          icon={Shield}
+          color="green"
+          badgeText="100% Verified"
+        />
+        <StatCard
+          title="Total Registered Area"
+          value="4,050 sq.m"
+          description="1.00 Acre (Agricultural)"
+          icon={MapPin}
+          color="blue"
+        />
+        <StatCard
+          title="Active Applications"
+          value="1 Filing"
+          icon={GitPullRequest}
+          color="amber"
+          description="Under Officer Audit"
+        />
+        <StatCard
+          title="Digitized Certificates"
+          value="2 Documents"
+          icon={FileCheck}
+          color="navy"
+          description="SHA-256 Verified"
+        />
       </div>
 
-      {/* Quick Action Links & Active Status */}
+      {/* Main Content 2-Column Split */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-panel p-6 rounded-2xl border border-slate-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">Recent Land Parcels</h2>
-            <Link to="/citizen/my-records" className="text-xs text-emerald-400 hover:underline flex items-center">
-              View All <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
+        {/* Left Column: Registered Land Records */}
+        <Card>
+          <CardHeader>
+            <CardTitle>My Land Holdings</CardTitle>
+            <Link to="/citizen/my-records">
+              <Button variant="ghost" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                View Details
+              </Button>
             </Link>
-          </div>
-          <div className="space-y-3">
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-mono text-emerald-400 font-semibold">ULPIN: RJ-JP-2024-8841</span>
-                <p className="font-semibold text-white mt-0.5">Khasra No: 102/4 • Rampur Village</p>
-                <p className="text-xs text-slate-400">Area: 4,050 sq.m (Agricultural)</p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="p-4 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-xs font-bold text-govblue-800 bg-govblue-50 px-2.5 py-0.5 rounded border border-govblue-200">
+                  ULPIN: RJ-JP-2024-8841
+                </span>
+                <StatusBadge status={RecordStatus.VERIFIED} />
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                Verified
-              </span>
+              <p className="text-sm font-bold text-slate-900">Khasra No 102/4 • Rampur Village</p>
+              <p className="text-xs text-slate-500 mt-0.5">Tehsil: Sanganer • District: Jaipur</p>
+              <div className="mt-3 pt-2.5 border-t border-slate-200 flex items-center justify-between text-xs">
+                <span className="text-slate-600">Area: <strong className="text-slate-900">4,050 sq.m</strong></span>
+                <span className="text-slate-600">Share: <strong className="text-slate-900">100%</strong></span>
+                <Link to="/map" className="text-govblue-600 font-semibold hover:underline">
+                  View GIS Map →
+                </Link>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="glass-panel p-6 rounded-2xl border border-slate-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">Application Pipeline</h2>
-            <Link to="/citizen/requests" className="text-xs text-emerald-400 hover:underline flex items-center">
-              View All <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
+        {/* Right Column: Application Pipeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Application Pipeline</CardTitle>
+            <Link to="/citizen/requests">
+              <Button variant="ghost" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                Track All
+              </Button>
             </Link>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono text-slate-400">MUT-2026-928104</span>
-              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                Document Verification
-              </span>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="p-4 rounded-lg border border-slate-200 bg-slate-50/50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-xs font-bold text-slate-700">
+                  MUT-2026-928104
+                </span>
+                <StatusBadge status={WorkflowStage.DOCUMENT_VERIFICATION} />
+              </div>
+              <p className="text-sm font-semibold text-slate-900">Sale Deed Title Transfer</p>
+              <p className="text-xs text-slate-500 mt-0.5">Target: Khasra 102/4 • Rampur</p>
+              <div className="mt-3">
+                <div className="flex justify-between text-[11px] text-slate-500 font-medium mb-1">
+                  <span>Current Stage: Document Verification</span>
+                  <span>Step 2 of 4</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-1.5">
+                  <div className="bg-govamber-600 h-1.5 rounded-full w-1/2" />
+                </div>
+              </div>
             </div>
-            <p className="text-sm font-medium text-slate-200">Sale Mutation Transfer for Khasra 102/4</p>
-            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-amber-400 h-1.5 rounded-full w-2/5"></div>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
