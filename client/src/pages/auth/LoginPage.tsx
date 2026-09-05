@@ -6,7 +6,20 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Alert } from '../../components/common/Alert';
 import { Card } from '../../components/common/Card';
-import { Shield, Mail, Lock, ArrowRight, UserCheck } from 'lucide-react';
+import { Badge } from '../../components/common/Badge';
+import {
+  Shield,
+  Mail,
+  Lock,
+  ArrowRight,
+  UserCheck,
+  Sparkles,
+  CheckCircle2,
+  LockKeyhole,
+  FileText,
+  MapPin,
+  Cpu
+} from 'lucide-react';
 import { UserRole } from '@land-digitization/shared';
 
 export const LoginPage: React.FC = () => {
@@ -72,104 +85,197 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-8">
-      {/* Top Brand Link */}
-      <div className="max-w-md w-full mx-auto text-center">
-        <Link to="/" className="inline-flex items-center gap-2.5 mb-2">
-          <div className="w-9 h-9 rounded-md bg-govnavy-900 text-white flex items-center justify-center shadow-gov-sm">
-            <Shield className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-lg text-govnavy-900 tracking-tight">
-            Bhoomi<span className="text-govblue-600">Setu</span>
-          </span>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+      {/* Top Official Banner */}
+      <div className="bg-slate-900/90 border-b border-slate-800 text-xs py-2 px-4 sm:px-8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-semibold text-white">Government of India • Land Records Modernization Mission</span>
+        </div>
+        <Link to="/" className="text-blue-400 hover:text-white font-semibold transition-colors flex items-center gap-1">
+          Back to Home
         </Link>
-        <p className="text-xs text-slate-500 font-medium">Government of India Digital Land Registry Service</p>
       </div>
 
-      {/* Main Login Card */}
-      <div className="max-w-md w-full mx-auto my-6">
-        <Card className="p-6 sm:p-8 bg-white border-slate-300 shadow-gov-md">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-slate-900">Sign in to your account</h2>
-            <p className="text-xs text-slate-500 mt-1">
-              Access your digitized land records, mutation requests, or official verification workspace.
-            </p>
-          </div>
+      {/* Main Split Layout Container */}
+      <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full max-w-5xl">
+          
+          {/* Left Column: Authentic Government AI Artwork & Mission Showcase */}
+          <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
+            {/* Header Brand */}
+            <Link to="/" className="inline-flex items-center gap-3 group">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-govnavy-900 to-blue-700 text-white flex items-center justify-center shadow-lg shadow-blue-900/30 border border-blue-500/40 group-hover:scale-105 transition-transform">
+                <Shield className="w-6 h-6 text-emerald-400" />
+              </div>
+              <div>
+                <div className="font-black text-2xl text-white tracking-tight font-display">
+                  Bhoomi<span className="text-blue-400">Setu</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  National Digital Land Registry & Cadastre
+                </div>
+              </div>
+            </Link>
 
-          {error && (
-            <div className="mb-5">
-              <Alert variant="danger">{error}</Alert>
-            </div>
-          )}
+            {/* Visual Card with Generated Government Artwork */}
+            <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900/80 group">
+              <div className="relative aspect-square sm:aspect-4/3 w-full overflow-hidden">
+                <img
+                  src="/images/gov_land_security_hero.jpg"
+                  alt="Government Digital Land Registry & Cybersecurity Emblem"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                
+                {/* Floating Seal Ribbon on Image */}
+                <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-blue-500/30 flex items-center gap-2 shadow-lg">
+                  <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
+                  <span className="text-xs font-bold text-white tracking-wide">
+                    Certified AI Cadastral Platform
+                  </span>
+                </div>
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Email Address"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              leftIcon={<Mail className="w-4 h-4" />}
-            />
+              {/* Text Highlights below image */}
+              <div className="p-5 space-y-2 relative bg-slate-900/95 border-t border-slate-800">
+                <h3 className="text-base font-bold text-white">
+                  Deterministic Title Certainty & AI Multi-Lingual OCR
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Connecting digital cadastral parcel polygons to historical registered deeds in Devanagari and English with mathematical validation.
+                </p>
 
-            <Input
-              label="Password"
-              isPassword
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              leftIcon={<Lock className="w-4 h-4" />}
-            />
-
-            <Button type="submit" size="lg" className="w-full mt-2" isLoading={isLoading}>
-              Sign In
-            </Button>
-          </form>
-
-          {/* Quick Demo Credentials Switcher */}
-          <div className="mt-6 pt-5 border-t border-slate-200">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5 text-govblue-600" />
-              Quick Fill Seed Credentials:
-            </p>
-            <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-1.5 text-[11px] sm:text-xs">
-              <button
-                type="button"
-                onClick={() => setDemoCredentials('citizen')}
-                className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-center border border-slate-200 transition-colors"
-              >
-                Citizen
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoCredentials('officer')}
-                className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-center border border-slate-200 transition-colors"
-              >
-                Officer
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoCredentials('admin')}
-                className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-center border border-slate-200 transition-colors"
-              >
-                Admin
-              </button>
+                <div className="flex flex-wrap items-center gap-2 pt-2 text-[11px] font-mono text-emerald-400 font-semibold">
+                  <span className="flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    100% Persistent Database
+                  </span>
+                  <span className="flex items-center gap-1 bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800 text-blue-300">
+                    <Cpu className="w-3.5 h-3.5 text-blue-400" />
+                    Deep OCR Vision
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </Card>
 
-        <div className="mt-4 text-center text-xs text-slate-600">
-          Do not have an account?{' '}
-          <Link to="/register" className="text-govblue-600 font-semibold hover:underline">
-            Register new citizen account
-          </Link>
+          {/* Right Column: Authentication Form */}
+          <div className="lg:col-span-6 w-full">
+            <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="text-2xl font-black text-white font-display">Official Sign In</h2>
+                  <Badge variant="navy" size="sm">
+                    Secure Session
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Enter your credentials to access land dossiers, verification queues, or admin console.
+                </p>
+              </div>
+
+              {error && (
+                <Alert variant="danger">
+                  <span>{error}</span>
+                </Alert>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Official Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="citizen@example.com or officer@bhoomisetu.gov.in"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Security Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-blue-600/20 mt-2"
+                  isLoading={isLoading}
+                >
+                  Authenticate & Sign In
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </form>
+
+              {/* 1-Click Role Seed Login Fast-Switcher */}
+              <div className="pt-4 border-t border-slate-800 space-y-2">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+                  1-Click Role Fast Credentials:
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setDemoCredentials('citizen')}
+                    className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-center transition-all hover:border-blue-500 flex flex-col items-center gap-1"
+                  >
+                    <span className="text-white font-bold">Citizen</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Ramesh S.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDemoCredentials('officer')}
+                    className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-center transition-all hover:border-blue-500 flex flex-col items-center gap-1"
+                  >
+                    <span className="text-white font-bold">Officer</span>
+                    <span className="text-[10px] text-blue-400 font-mono">Tehsildar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDemoCredentials('admin')}
+                    className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-center transition-all hover:border-blue-500 flex flex-col items-center gap-1"
+                  >
+                    <span className="text-white font-bold">Admin</span>
+                    <span className="text-[10px] text-amber-400 font-mono">DM Console</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 text-center text-xs text-slate-400">
+                Don&apos;t have an account?{' '}
+                <Link to="/register" className="text-blue-400 font-bold hover:underline">
+                  Register new citizen account
+                </Link>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <div className="text-center text-[11px] text-slate-400">
-        Protected by SHA-256 digital document verification & national security audit protocols.
+      {/* Bottom Footer Ribbon */}
+      <div className="bg-slate-900 text-slate-500 text-center text-[11px] py-3 border-t border-slate-800">
+        BhoomiSetu National Digital Registry • Protected by SHA-256 digital document verification & biometric security.
       </div>
     </div>
   );
