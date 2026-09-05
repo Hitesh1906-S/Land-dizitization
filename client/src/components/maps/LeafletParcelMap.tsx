@@ -28,7 +28,7 @@ interface LeafletParcelMapProps {
   selectedParcelId?: string | null;
   onParcelClick?: (feature: any) => void;
   className?: string;
-  tileProvider?: 'carto' | 'osm' | 'satellite';
+  tileProvider?: 'topo' | 'osm' | 'satellite';
 }
 
 // Controller component to handle programmatically fitting bounds or panning
@@ -84,7 +84,7 @@ export const LeafletParcelMap: React.FC<LeafletParcelMapProps> = ({
   onParcelClick,
   className = 'h-[500px] w-full',
 }) => {
-  const [activeLayer, setActiveLayer] = useState<'carto' | 'satellite' | 'osm'>('carto');
+  const [activeLayer, setActiveLayer] = useState<'topo' | 'satellite' | 'osm'>('topo');
 
   const getParcelStyle = (feature: any) => {
     const isSelected =
@@ -189,13 +189,13 @@ export const LeafletParcelMap: React.FC<LeafletParcelMapProps> = ({
   };
 
   const tileLayerUrls = {
-    carto: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    topo: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   };
 
   const tileAttributions = {
-    carto: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    topo: 'Tiles &copy; Esri &mdash; Esri, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, and the GIS User Community',
     satellite: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
     osm: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   };
@@ -235,9 +235,9 @@ export const LeafletParcelMap: React.FC<LeafletParcelMapProps> = ({
       <div className="absolute top-3 right-3 z-[400] flex items-center bg-white/95 backdrop-blur-md rounded-lg p-1 border border-slate-200 shadow-md">
         <button
           type="button"
-          onClick={() => setActiveLayer('carto')}
+          onClick={() => setActiveLayer('topo')}
           className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-            activeLayer === 'carto'
+            activeLayer === 'topo'
               ? 'bg-govnavy-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
