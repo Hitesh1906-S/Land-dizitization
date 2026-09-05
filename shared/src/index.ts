@@ -426,6 +426,36 @@ export interface OfficerDashboardStatsDTO {
   duplicates: number;
 }
 
+// 15. Admin Dashboard & Operations
+export interface AdminDashboardStatsDTO {
+  totalUsers: number;
+  activeUsers: number;
+  totalOfficers: number;
+  totalCitizens: number;
+  totalAdmins: number;
+  totalRecords: number;
+  totalRequests: number;
+  pendingRequests: number;
+  unresolvedIssues: number;
+  totalAuditLogs: number;
+}
+
+export interface ValidationMetricsDTO {
+  totalValidations: number;
+  passedValidations: number;
+  failedValidations: number;
+  passRatePercentage: number;
+  averageScore: number;
+  unresolvedIssuesCount: number;
+  criticalIssuesCount: number;
+  warningIssuesCount: number;
+  infoIssuesCount: number;
+  topTriggeredRules: Array<{
+    ruleCode: string;
+    count: number;
+  }>;
+}
+
 // Standard API Response Wrapper
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -444,4 +474,5 @@ export interface ApiResponse<T = any> {
   };
   timestamp: string;
 }
+
 

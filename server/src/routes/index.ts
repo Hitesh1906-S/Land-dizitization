@@ -10,6 +10,7 @@ import gisRoutes from './gis.routes';
 import workflowRoutes from './workflow.routes';
 import auditRoutes from './audit.routes';
 import officerRoutes from './officer.routes';
+import adminRoutes from './admin.routes';
 import { sendSuccess } from '../utils/responseFormatter';
 
 const router = Router();
@@ -38,6 +39,8 @@ router.use('/workflows', workflowRoutes);
 router.use('/requests', workflowRoutes);
 router.use('/audit', auditRoutes);
 router.use('/officer', officerRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;
+
 
