@@ -25,6 +25,12 @@ export class AuthService {
     }
 
     const passwordHash = await hashPassword(data.password);
+    const roleName = data.role || UserRole.CITIZEN;
+
+    // Find roleId if exists
+    const roleRecord = await prisma.role.findUnique({
+      where: { name: roleName },
+    });
 
     const user = await prisma.user.create({
       data: {
@@ -32,9 +38,11 @@ export class AuthService {
         passwordHash,
         fullName: data.fullName.trim(),
         phone: data.phone,
-        role: data.role || UserRole.CITIZEN,
+        roleId: roleRecord ? roleRecord.id : undefined,
+        roleName,
         jurisdictionDistrict: data.jurisdictionDistrict,
         jurisdictionTehsil: data.jurisdictionTehsil,
+        isActive: true,
       },
     });
 
@@ -88,12 +96,12 @@ export class AuthService {
     }
   }
 
-  static generateAccessToken(user: { id: string; email: string; role: string; jurisdictionDistrict?: string | null; jurisdictionTehsil?: string | null }): string {
+  static generateAccessToken(user: { id: string; email: string; roleName: string; jurisdictionDistrict?: string | null; jurisdictionTehsil?: string | null }): string {
     return jwt.sign(
       {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: user.roleName,
         jurisdictionDistrict: user.jurisdictionDistrict,
         jurisdictionTehsil: user.jurisdictionTehsil,
       },
@@ -113,10 +121,11 @@ export class AuthService {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      phone: user.phone,
-      role: user.role as UserRole,
-      jurisdictionDistrict: user.jurisdictionDistrict,
-      jurisdictionTehsil: user.jurisdictionTehsil,
+      phone: user.phone || undefined,
+      role: (user.roleName || user.role || UserRole.CITIZEN) as UserRole,
+      jurisdictionDistrict: user.jurisdictionDistrict || undefined,
+      jurisdictionTehsil: user.jurisdictionTehsil || undefined,
+      isActive: user.isActive ?? true,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };

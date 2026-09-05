@@ -7,20 +7,29 @@ import { BadRequestError } from '../utils/AppError';
 export class WorkflowController {
   static async submit(req: Request, res: Response, next: NextFunction) {
     try {
-      const { recordId, requestType, metadata, documentIds } = req.body;
+      const { landRecordId, requestType, metadata, documentIds } = req.body;
       if (!requestType) {
         throw new BadRequestError('requestType is required');
       }
 
       const request = await WorkflowService.submitRequest({
         applicantId: req.user!.id,
-        recordId,
+        landRecordId,
         requestType,
         metadata,
         documentIds,
       });
 
       return sendSuccess(res, request, 'Application submitted successfully', HTTP_STATUS.CREATED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const request = await WorkflowService.getRequestById(req.params.id);
+      return sendSuccess(res, request, 'Request retrieved');
     } catch (err) {
       next(err);
     }

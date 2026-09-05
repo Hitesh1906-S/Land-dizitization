@@ -1,12 +1,22 @@
 /**
- * Core User & Authentication Types
+ * BhoomiSetu Shared Domain Types & Normalized Contracts
  */
+
+// 1. Roles & Permissions
 export enum UserRole {
   CITIZEN = 'CITIZEN',
   REVENUE_OFFICER = 'REVENUE_OFFICER',
   ADMIN = 'ADMIN',
 }
 
+export interface RoleDTO {
+  id: string;
+  name: UserRole;
+  description: string;
+  permissions?: string[];
+}
+
+// 2. User
 export interface UserDTO {
   id: string;
   email: string;
@@ -15,6 +25,7 @@ export interface UserDTO {
   role: UserRole;
   jurisdictionDistrict?: string | null;
   jurisdictionTehsil?: string | null;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,9 +36,21 @@ export interface AuthResponse {
   refreshToken?: string;
 }
 
-/**
- * Land Record Status & Classification
- */
+// 3. Location (Hierarchical administrative unit)
+export interface LocationDTO {
+  id: string;
+  state: string;
+  district: string;
+  tehsil: string;
+  subDivision?: string | null;
+  village: string;
+  censusCode?: string | null;
+  pincode?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 4. LandRecord Status & Classifications
 export enum RecordStatus {
   DRAFT = 'DRAFT',
   PENDING_VERIFICATION = 'PENDING_VERIFICATION',
@@ -53,217 +76,65 @@ export enum AreaUnit {
   GUNTHA = 'GUNTHA',
 }
 
-export interface LandOwnerDTO {
-  id: string;
-  recordId: string;
-  ownerName: string;
-  identifierMasked?: string | null;
-  relationType?: string | null; // e.g. "S/O", "D/O", "W/O"
-  shareFraction: number; // e.g. 0.5 for 50%
-  isPrimary: boolean;
-}
-
-export interface ParcelGeometryDTO {
-  id: string;
-  recordId: string;
-  geometryJson: GeoJSONPolygon | GeoJSONMultiPolygon;
-  centroidLat: number;
-  centroidLng: number;
-  crsProjection: string;
-  boundaryHash?: string | null;
-}
-
 export interface LandRecordDTO {
   id: string;
   ulpin: string; // Unique Land Parcel Identification Number
-  khasraNumber: string; // Survey/Khasra Number
-  khatauniNumber: string; // Khatauni / Khatiyan Number
-  district: string;
-  tehsil: string;
-  village: string;
+  khasraNumber: string;
+  khatauniNumber: string;
+  locationId: string;
+  location?: LocationDTO;
   areaInSqMeters: number;
   areaUnit: AreaUnit;
   landType: LandType;
   status: RecordStatus;
-  owners?: LandOwnerDTO[];
-  geometry?: ParcelGeometryDTO | null;
+  createdById: string;
+  createdBy?: UserDTO;
+  owners?: OwnerDTO[];
+  parcel?: ParcelDTO | null;
   documents?: DocumentDTO[];
+  ownershipHistory?: OwnershipHistoryDTO[];
   createdAt: string;
   updatedAt: string;
 }
 
-/**
- * Document & OCR Types
- */
-export enum DocumentType {
-  REGISTRATION_DEED = 'REGISTRATION_DEED',
-  KHATAUNI_7_12 = 'KHATAUNI_7_12',
-  MUTATION_CERTIFICATE = 'MUTATION_CERTIFICATE',
-  ENCUMBRANCE_CERTIFICATE = 'ENCUMBRANCE_CERTIFICATE',
-  SURVEY_MAP = 'SURVEY_MAP',
-  IDENTITY_PROOF = 'IDENTITY_PROOF',
-}
-
-export interface DocumentDTO {
+// 5. Owner
+export interface OwnerDTO {
   id: string;
-  recordId?: string | null;
-  workflowId?: string | null;
-  fileName: string;
-  fileType: string;
-  filePath: string;
-  fileSize: number;
-  fileHash: string; // SHA-256
-  documentType: DocumentType;
-  uploadedById: string;
-  createdAt: string;
+  landRecordId: string;
+  fullName: string;
+  identifierMasked?: string | null; // Masked Aadhaar / PAN hash
+  relationType?: string | null; // S/O, D/O, W/O
+  guardianName?: string | null;
+  shareFraction: number; // 0.0 to 1.0 (e.g. 0.50 for 50%)
+  isPrimary: boolean;
+  mobileNumber?: string | null;
+  address?: string | null;
+  addedAt: string;
 }
 
-export enum OcrEngine {
-  TESSERACT = 'TESSERACT',
-  GEMINI_VISION = 'GEMINI_VISION',
-  HYBRID = 'HYBRID',
-}
-
-export enum JobStatus {
-  QUEUED = 'QUEUED',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-}
-
-export interface ExtractionJobDTO {
-  id: string;
-  documentId: string;
-  status: JobStatus;
-  rawOcrText?: string | null;
-  extractedFields?: Record<string, any> | null;
-  confidenceScore?: number | null;
-  ocrEngine: OcrEngine;
-  completedAt?: string | null;
-}
-
-/**
- * Validation & Conflict Types
- */
-export enum ConflictType {
-  SPATIAL_OVERLAP = 'SPATIAL_OVERLAP',
-  DUPLICATE_KHASRA = 'DUPLICATE_KHASRA',
-  TITLE_DISPUTE = 'TITLE_DISPUTE',
-  SHARE_SUM_MISMATCH = 'SHARE_SUM_MISMATCH',
-  AREA_DISCREPANCY = 'AREA_DISCREPANCY',
-}
-
-export enum ConflictStatus {
-  OPEN = 'OPEN',
-  INVESTIGATING = 'INVESTIGATING',
-  RESOLVED = 'RESOLVED',
-  DISMISSED = 'DISMISSED',
-}
-
-export interface DuplicateConflictDTO {
-  id: string;
-  recordAId: string;
-  recordBId?: string | null;
-  conflictType: ConflictType;
-  overlapPercentage?: number | null;
-  status: ConflictStatus;
-  resolutionNotes?: string | null;
-  resolvedById?: string | null;
-  resolvedAt?: string | null;
-  recordA?: LandRecordDTO;
-  recordB?: LandRecordDTO;
-  createdAt: string;
-}
-
-export interface ValidationRuleResult {
-  ruleId: string;
-  ruleName: string;
-  passed: boolean;
-  severity: 'ERROR' | 'WARNING' | 'INFO';
-  message: string;
-  details?: Record<string, any>;
-}
-
-export interface ValidationReportDTO {
-  id: string;
-  recordId: string;
-  isValid: boolean;
-  score: number; // 0 to 100
-  ruleResults: ValidationRuleResult[];
-  createdAt: string;
-}
-
-/**
- * Workflows & Mutation Requests
- */
-export enum WorkflowType {
-  SALE_MUTATION = 'SALE_MUTATION',
+// 6. OwnershipHistory
+export enum MutationType {
+  SALE = 'SALE',
   INHERITANCE = 'INHERITANCE',
+  GIFT = 'GIFT',
   PARTITION = 'PARTITION',
-  DIGITIZATION_NEW = 'DIGITIZATION_NEW',
+  GOVERNMENT_ACQUISITION = 'GOVERNMENT_ACQUISITION',
 }
 
-export enum WorkflowStage {
-  SUBMITTED = 'SUBMITTED',
-  DOCUMENT_VERIFICATION = 'DOCUMENT_VERIFICATION',
-  FIELD_SURVEY = 'FIELD_SURVEY',
-  OBJECTION_WINDOW = 'OBJECTION_WINDOW',
-  FINAL_APPROVAL = 'FINAL_APPROVAL',
-  REJECTED = 'REJECTED',
-}
-
-export interface MutationRequestDTO {
+export interface OwnershipHistoryDTO {
   id: string;
-  applicationNo: string;
-  recordId?: string | null;
-  applicantId: string;
-  requestType: WorkflowType;
-  stage: WorkflowStage;
-  assignedOfficerId?: string | null;
-  rejectionReason?: string | null;
-  metadata?: Record<string, any> | null;
-  applicant?: UserDTO;
-  record?: LandRecordDTO | null;
-  documents?: DocumentDTO[];
+  landRecordId: string;
+  previousOwnerName: string;
+  newOwnerName: string;
+  mutationType: MutationType;
+  mutationOrderNumber: string;
+  mutationDate: string;
+  transferredShare: number;
+  recordedById: string;
   createdAt: string;
-  updatedAt: string;
 }
 
-/**
- * Audit Logging
- */
-export enum AuditAction {
-  CREATE = 'CREATE',
-  UPDATE = 'UPDATE',
-  DELETE = 'DELETE',
-  VERIFY = 'VERIFY',
-  APPROVE_MUTATION = 'APPROVE_MUTATION',
-  REJECT_MUTATION = 'REJECT_MUTATION',
-  RESOLVE_CONFLICT = 'RESOLVE_CONFLICT',
-  RUN_OCR = 'RUN_OCR',
-  EXPORT_RECORD = 'EXPORT_RECORD',
-}
-
-export interface AuditLogDTO {
-  id: string;
-  actorId: string;
-  actorRole: UserRole;
-  action: AuditAction;
-  entityType: string;
-  entityId: string;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-  snapshotDiff?: Record<string, any> | null;
-  timestamp: string;
-  actor?: {
-    fullName: string;
-    email: string;
-  };
-}
-
-/**
- * GeoJSON Standard Types
- */
+// 7. Parcel (GIS Geometry)
 export type Position = [number, number] | [number, number, number]; // [lng, lat]
 
 export interface GeoJSONPolygon {
@@ -278,9 +149,9 @@ export interface GeoJSONMultiPolygon {
 
 export interface GeoJSONFeature<G = GeoJSONPolygon | GeoJSONMultiPolygon, P = Record<string, any>> {
   type: 'Feature';
+  id?: string | number;
   geometry: G;
   properties: P;
-  id?: string | number;
 }
 
 export interface GeoJSONFeatureCollection<G = GeoJSONPolygon | GeoJSONMultiPolygon, P = Record<string, any>> {
@@ -288,9 +159,235 @@ export interface GeoJSONFeatureCollection<G = GeoJSONPolygon | GeoJSONMultiPolyg
   features: GeoJSONFeature<G, P>[];
 }
 
-/**
- * Standard API Response Format
- */
+export interface ParcelDTO {
+  id: string;
+  landRecordId: string;
+  geometryJson: GeoJSONPolygon | GeoJSONMultiPolygon;
+  centroidLat: number;
+  centroidLng: number;
+  crsProjection: string;
+  boundaryHash?: string | null;
+  northBoundary?: string | null;
+  southBoundary?: string | null;
+  eastBoundary?: string | null;
+  westBoundary?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 8. Document
+export enum DocumentType {
+  REGISTRATION_DEED = 'REGISTRATION_DEED',
+  KHATAUNI_7_12 = 'KHATAUNI_7_12',
+  MUTATION_SANCTION = 'MUTATION_SANCTION',
+  MUTATION_CERTIFICATE = 'MUTATION_CERTIFICATE',
+  ENCUMBRANCE_CERTIFICATE = 'ENCUMBRANCE_CERTIFICATE',
+  SURVEY_MAP = 'SURVEY_MAP',
+  IDENTITY_PROOF = 'IDENTITY_PROOF',
+}
+
+export interface DocumentDTO {
+  id: string;
+  landRecordId?: string | null;
+  requestId?: string | null;
+  fileName: string;
+  fileType: string;
+  filePath: string;
+  fileSize: number;
+  fileHash: string; // SHA-256
+  documentType: DocumentType;
+  uploadedById: string;
+  createdAt: string;
+  ocrResult?: OCRResultDTO | null;
+}
+
+// 9. OCRResult & ExtractedField
+export enum OcrEngine {
+  TESSERACT = 'TESSERACT',
+  GEMINI_VISION = 'GEMINI_VISION',
+  HYBRID = 'HYBRID',
+}
+
+export enum JobStatus {
+  QUEUED = 'QUEUED',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export interface OCRResultDTO {
+  id: string;
+  documentId: string;
+  status: JobStatus;
+  rawText?: string | null;
+  confidenceScore?: number | null;
+  engine: OcrEngine;
+  pageCount: number;
+  processingTimeMs?: number | null;
+  completedAt?: string | null;
+  extractedFields?: ExtractedFieldDTO[];
+  createdAt: string;
+}
+
+export interface ExtractedFieldDTO {
+  id: string;
+  ocrResultId: string;
+  fieldName: string;
+  fieldValue: string;
+  confidence: number;
+  boundingBoxJson?: Record<string, any> | string | null;
+  isVerified: boolean;
+  verifiedValue?: string | null;
+  verifiedById?: string | null;
+  createdAt: string;
+}
+
+// 10. ValidationResult & ValidationIssue
+export enum IssueSeverity {
+  CRITICAL = 'CRITICAL',
+  WARNING = 'WARNING',
+  INFO = 'INFO',
+}
+
+export enum RuleCode {
+  SYNTAX_INVALID = 'SYNTAX_INVALID',
+  SHARE_SUM_MISMATCH = 'SHARE_SUM_MISMATCH',
+  AREA_DEVIATION = 'AREA_DEVIATION',
+  SPATIAL_OVERLAP = 'SPATIAL_OVERLAP',
+  DUPLICATE_KHASRA = 'DUPLICATE_KHASRA',
+  UNVERIFIED_OWNER = 'UNVERIFIED_OWNER',
+}
+
+export interface ValidationIssueDTO {
+  id: string;
+  validationResultId: string;
+  ruleCode: RuleCode | string;
+  severity: IssueSeverity | 'CRITICAL' | 'WARNING' | 'INFO';
+  title: string;
+  description: string;
+  detailsJson?: Record<string, any> | string | null;
+  isResolved: boolean;
+  resolvedById?: string | null;
+  resolvedAt?: string | null;
+}
+
+export interface ValidationResultDTO {
+  id: string;
+  landRecordId: string;
+  isValid: boolean;
+  overallScore: number; // 0 - 100
+  summary?: string | null;
+  executedById: string;
+  issues?: ValidationIssueDTO[];
+  createdAt: string;
+}
+
+// 11. DuplicateCandidate & Conflicts
+export enum ConflictType {
+  SPATIAL_OVERLAP = 'SPATIAL_OVERLAP',
+  DUPLICATE_KHASRA = 'DUPLICATE_KHASRA',
+  TITLE_DISPUTE = 'TITLE_DISPUTE',
+  SHARE_EXCESS = 'SHARE_EXCESS',
+}
+
+export enum ConflictStatus {
+  OPEN = 'OPEN',
+  INVESTIGATING = 'INVESTIGATING',
+  RESOLVED = 'RESOLVED',
+  DISMISSED = 'DISMISSED',
+}
+
+export interface DuplicateCandidateDTO {
+  id: string;
+  primaryRecordId: string;
+  conflictingRecordId?: string | null;
+  conflictType: ConflictType;
+  overlapPercentage?: number | null;
+  overlapAreaSqM?: number | null;
+  status: ConflictStatus;
+  resolutionNotes?: string | null;
+  resolvedById?: string | null;
+  resolvedAt?: string | null;
+  primaryRecord?: LandRecordDTO;
+  conflictingRecord?: LandRecordDTO | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 12. Request (Mutation / Digitization Lifecycle)
+export enum RequestType {
+  SALE_MUTATION = 'SALE_MUTATION',
+  INHERITANCE = 'INHERITANCE',
+  PARTITION = 'PARTITION',
+  NEW_DIGITIZATION = 'NEW_DIGITIZATION',
+  DIGITIZATION_NEW = 'NEW_DIGITIZATION',
+}
+
+export enum RequestStage {
+  SUBMITTED = 'SUBMITTED',
+  DOCUMENT_VERIFICATION = 'DOCUMENT_VERIFICATION',
+  FIELD_SURVEY = 'FIELD_SURVEY',
+  OBJECTION_WINDOW = 'OBJECTION_WINDOW',
+  FINAL_APPROVAL = 'FINAL_APPROVAL',
+  REJECTED = 'REJECTED',
+}
+
+// Aliases for compatibility
+export const WorkflowType = RequestType;
+export type WorkflowType = RequestType;
+export const WorkflowStage = RequestStage;
+export type WorkflowStage = RequestStage;
+
+export interface RequestDTO {
+  id: string;
+  applicationNumber: string;
+  landRecordId?: string | null;
+  applicantId: string;
+  requestType: RequestType;
+  stage: RequestStage;
+  assignedOfficerId?: string | null;
+  rejectionReason?: string | null;
+  metadataJson?: Record<string, any> | string | null;
+  applicant?: UserDTO;
+  assignedOfficer?: UserDTO | null;
+  landRecord?: LandRecordDTO | null;
+  documents?: DocumentDTO[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 13. AuditLog
+export enum AuditAction {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+  VERIFY = 'VERIFY',
+  APPROVE_MUTATION = 'APPROVE_MUTATION',
+  REJECT_MUTATION = 'REJECT_MUTATION',
+  RESOLVE_CONFLICT = 'RESOLVE_CONFLICT',
+  RUN_OCR = 'RUN_OCR',
+  EXPORT_DATA = 'EXPORT_DATA',
+}
+
+export interface AuditLogDTO {
+  id: string;
+  actorId: string;
+  actorRole: string;
+  action: AuditAction;
+  entityType: string;
+  entityId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  snapshotDiffJson?: Record<string, any> | string | null;
+  snapshotDiff?: string | null;
+  timestamp: string;
+  actor?: {
+    fullName: string;
+    email: string;
+  };
+}
+
+// Standard API Response Wrapper
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;

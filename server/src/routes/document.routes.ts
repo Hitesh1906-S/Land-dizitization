@@ -5,6 +5,7 @@ import { upload } from '../middleware/upload.middleware';
 
 const router = Router();
 
+router.get('/', authenticate, DocumentController.list);
 router.post('/upload', authenticate, upload.single('file'), DocumentController.upload);
 router.get('/:id', authenticate, DocumentController.getById);
 router.get('/:id/download', authenticate, DocumentController.downloadFile);

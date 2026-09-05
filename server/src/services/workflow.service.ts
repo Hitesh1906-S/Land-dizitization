@@ -1,99 +1,164 @@
 import { prisma } from '../config/database';
 import { NotFoundError } from '../utils/AppError';
-import { WorkflowStage, WorkflowType, MutationRequestDTO } from '@land-digitization/shared';
+import { WorkflowStage, WorkflowType, RequestDTO } from '@land-digitization/shared';
 
 export class WorkflowService {
   static async submitRequest(data: {
     applicantId: string;
-    recordId?: string;
+    landRecordId?: string;
     requestType: WorkflowType;
     metadata?: Record<string, any>;
     documentIds?: string[];
-  }) {
-    const applicationNo = `MUT-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+  }): Promise<RequestDTO> {
+    const applicationNumber = `MUT-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    const request = await prisma.mutationRequest.create({
+    const request = await prisma.request.create({
       data: {
-        applicationNo,
+        applicationNumber,
         applicantId: data.applicantId,
-        recordId: data.recordId,
+        landRecordId: data.landRecordId,
         requestType: data.requestType,
         stage: WorkflowStage.SUBMITTED,
         metadataJson: data.metadata ? JSON.stringify(data.metadata) : null,
-        documents: data.documentIds
-          ? {
-              connect: data.documentIds.map((id) => ({ id })),
-            }
-          : undefined,
       },
       include: {
         applicant: true,
-        record: true,
+        landRecord: {
+          include: { location: true },
+        },
         documents: true,
       },
     });
 
-    return this.mapToDTO(request);
-  }
-
-  static async updateStage(requestId: string, officerId: string, stage: WorkflowStage, rejectionReason?: string) {
-    const request = await prisma.mutationRequest.findUnique({ where: { id: requestId } });
-    if (!request) {
-      throw new NotFoundError(`Mutation request with ID ${requestId} not found`);
+    if (data.documentIds && data.documentIds.length > 0) {
+      await prisma.document.updateMany({
+        where: { id: { in: data.documentIds } },
+        data: { requestId: request.id },
+      });
     }
 
-    const updated = await prisma.mutationRequest.update({
+    return this.getRequestById(request.id);
+  }
+
+  static async updateStage(requestId: string, officerId: string, stage: WorkflowStage, rejectionReason?: string): Promise<RequestDTO> {
+    const request = await prisma.request.findUnique({ where: { id: requestId } });
+    if (!request) {
+      throw new NotFoundError(`Request with ID ${requestId} not found`);
+    }
+
+    await prisma.request.update({
       where: { id: requestId },
       data: {
         stage,
         assignedOfficerId: officerId,
         rejectionReason: stage === WorkflowStage.REJECTED ? rejectionReason : null,
       },
+    });
+
+    return this.getRequestById(requestId);
+  }
+
+  static async getRequestById(id: string): Promise<RequestDTO> {
+    const req = await prisma.request.findUnique({
+      where: { id },
       include: {
         applicant: true,
-        record: true,
+        assignedOfficer: true,
+        landRecord: {
+          include: { location: true, owners: true },
+        },
         documents: true,
       },
     });
 
-    return this.mapToDTO(updated);
+    if (!req) {
+      throw new NotFoundError(`Request with ID ${id} not found`);
+    }
+
+    return this.mapToDTO(req);
   }
 
-  static async getRequests(filters: { applicantId?: string; officerId?: string; stage?: WorkflowStage }) {
-    const where: any = {};
-    if (filters.applicantId) where.applicantId = filters.applicantId;
-    if (filters.officerId) where.assignedOfficerId = filters.officerId;
-    if (filters.stage) where.stage = filters.stage;
-
-    const requests = await prisma.mutationRequest.findMany({
-      where,
+  static async getRequests(filters: { applicantId?: string; officerId?: string; stage?: WorkflowStage }): Promise<RequestDTO[]> {
+    const requests = await prisma.request.findMany({
+      where: {
+        ...(filters.applicantId && { applicantId: filters.applicantId }),
+        ...(filters.officerId && { assignedOfficerId: filters.officerId }),
+        ...(filters.stage && { stage: filters.stage }),
+      },
       include: {
         applicant: true,
-        record: true,
+        assignedOfficer: true,
+        landRecord: {
+          include: { location: true },
+        },
         documents: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return requests.map(this.mapToDTO);
+    return requests.map(r => this.mapToDTO(r));
   }
 
-  static mapToDTO(req: any): MutationRequestDTO {
+  static mapToDTO(req: any): RequestDTO {
     return {
       id: req.id,
-      applicationNo: req.applicationNo,
-      recordId: req.recordId,
+      applicationNumber: req.applicationNumber,
+      landRecordId: req.landRecordId || undefined,
       applicantId: req.applicantId,
       requestType: req.requestType as WorkflowType,
       stage: req.stage as WorkflowStage,
-      assignedOfficerId: req.assignedOfficerId,
-      rejectionReason: req.rejectionReason,
-      metadata: req.metadataJson,
-      applicant: req.applicant,
-      record: req.record,
-      documents: req.documents,
+      assignedOfficerId: req.assignedOfficerId || undefined,
+      rejectionReason: req.rejectionReason || undefined,
+      metadataJson: req.metadataJson || undefined,
       createdAt: req.createdAt.toISOString(),
       updatedAt: req.updatedAt.toISOString(),
+      applicant: req.applicant ? {
+        id: req.applicant.id,
+        email: req.applicant.email,
+        fullName: req.applicant.fullName,
+        phone: req.applicant.phone || undefined,
+        role: req.applicant.roleName as any,
+        isActive: req.applicant.isActive ?? true,
+        createdAt: req.applicant.createdAt.toISOString(),
+        updatedAt: req.applicant.updatedAt.toISOString(),
+      } : undefined,
+      assignedOfficer: req.assignedOfficer ? {
+        id: req.assignedOfficer.id,
+        email: req.assignedOfficer.email,
+        fullName: req.assignedOfficer.fullName,
+        phone: req.assignedOfficer.phone || undefined,
+        role: req.assignedOfficer.roleName as any,
+        isActive: req.assignedOfficer.isActive ?? true,
+        createdAt: req.assignedOfficer.createdAt.toISOString(),
+        updatedAt: req.assignedOfficer.updatedAt.toISOString(),
+      } : undefined,
+      landRecord: req.landRecord ? {
+        id: req.landRecord.id,
+        ulpin: req.landRecord.ulpin,
+        khasraNumber: req.landRecord.khasraNumber,
+        khatauniNumber: req.landRecord.khatauniNumber,
+        locationId: req.landRecord.locationId,
+        areaInSqMeters: req.landRecord.areaInSqMeters,
+        areaUnit: req.landRecord.areaUnit,
+        landType: req.landRecord.landType,
+        status: req.landRecord.status,
+        createdById: req.landRecord.createdById,
+        createdAt: req.landRecord.createdAt.toISOString(),
+        updatedAt: req.landRecord.updatedAt.toISOString(),
+      } : undefined,
+      documents: req.documents ? req.documents.map((d: any) => ({
+        id: d.id,
+        landRecordId: d.landRecordId || undefined,
+        requestId: d.requestId || undefined,
+        fileName: d.fileName,
+        fileType: d.fileType,
+        filePath: d.filePath,
+        fileSize: d.fileSize,
+        fileHash: d.fileHash,
+        documentType: d.documentType as any,
+        uploadedById: d.uploadedById,
+        createdAt: d.createdAt.toISOString(),
+      })) : [],
     };
   }
 }

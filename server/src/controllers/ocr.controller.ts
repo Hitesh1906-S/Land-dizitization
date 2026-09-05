@@ -12,18 +12,31 @@ export class OcrController {
         throw new BadRequestError('documentId is required');
       }
 
-      const job = await OcrService.startExtractionJob(documentId, engine);
-      return sendSuccess(res, job, 'OCR extraction job scheduled', HTTP_STATUS.ACCEPTED);
+      const result = await OcrService.startExtractionJob(documentId, engine);
+      return sendSuccess(res, result, 'OCR extraction processed successfully', HTTP_STATUS.ACCEPTED);
     } catch (err) {
       next(err);
     }
   }
 
-  static async getJobStatus(req: Request, res: Response, next: NextFunction) {
+  static async getResultByDocumentId(req: Request, res: Response, next: NextFunction) {
     try {
-      const { jobId } = req.params;
-      const job = await OcrService.getJobStatus(jobId);
-      return sendSuccess(res, job, 'Job status retrieved');
+      const { documentId } = req.params;
+      const result = await OcrService.getResultByDocumentId(documentId);
+      return sendSuccess(res, result, 'OCR extraction result retrieved');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async verifyField(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fieldId } = req.params;
+      const { verifiedValue } = req.body;
+      const userId = req.user?.id || 'admin-user-id';
+
+      const field = await OcrService.verifyField(fieldId, verifiedValue, userId);
+      return sendSuccess(res, field, 'Extracted field verified successfully');
     } catch (err) {
       next(err);
     }

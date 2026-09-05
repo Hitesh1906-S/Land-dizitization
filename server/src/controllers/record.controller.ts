@@ -3,6 +3,7 @@ import { RecordService } from '../services/record.service';
 import { sendSuccess } from '../utils/responseFormatter';
 import { HTTP_STATUS } from '../constants';
 import { BadRequestError } from '../utils/AppError';
+import { prisma } from '../config/database';
 
 export class RecordController {
   static async search(req: Request, res: Response, next: NextFunction) {
@@ -38,9 +39,51 @@ export class RecordController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const { ulpin, khasraNumber, khatauniNumber, district, tehsil, village, areaInSqMeters, areaUnit, landType, owners, geometry } = req.body;
+      const {
+        ulpin,
+        khasraNumber,
+        khatauniNumber,
+        locationId,
+        district,
+        tehsil,
+        village,
+        state,
+        areaInSqMeters,
+        areaUnit,
+        landType,
+        owners,
+        parcel,
+      } = req.body;
 
-      if (!ulpin || !khasraNumber || !khatauniNumber || !district || !village || !areaInSqMeters) {
+      let resolvedLocationId = locationId;
+
+      if (!resolvedLocationId) {
+        if (!district || !village) {
+          throw new BadRequestError('Either locationId or district/village is required');
+        }
+        // Find or create location
+        let loc = await prisma.location.findFirst({
+          where: {
+            district: district.trim(),
+            tehsil: (tehsil || district).trim(),
+            village: village.trim(),
+          },
+        });
+
+        if (!loc) {
+          loc = await prisma.location.create({
+            data: {
+              state: state || 'Rajasthan',
+              district: district.trim(),
+              tehsil: (tehsil || district).trim(),
+              village: village.trim(),
+            },
+          });
+        }
+        resolvedLocationId = loc.id;
+      }
+
+      if (!ulpin || !khasraNumber || !khatauniNumber || !areaInSqMeters || !owners?.length) {
         throw new BadRequestError('Missing required land record fields');
       }
 
@@ -48,15 +91,13 @@ export class RecordController {
         ulpin,
         khasraNumber,
         khatauniNumber,
-        district,
-        tehsil: tehsil || district,
-        village,
-        areaInSqMeters: parseFloat(areaInSqMeters),
+        locationId: resolvedLocationId,
+        areaInSqMeters: parseFloat(String(areaInSqMeters)),
         areaUnit,
         landType,
         createdById: req.user!.id,
         owners,
-        geometry,
+        parcel,
       });
 
       return sendSuccess(res, record, 'Land record created successfully', HTTP_STATUS.CREATED);

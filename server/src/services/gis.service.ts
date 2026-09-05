@@ -7,29 +7,37 @@ export class GisService {
     district?: string;
     tehsil?: string;
     village?: string;
+    locationId?: string;
   }): Promise<GeoJSONFeatureCollection> {
     const where: any = {
-      geometry: { isNot: null },
+      parcel: { isNot: null },
     };
 
-    if (filters.district) where.district = { contains: filters.district, mode: 'insensitive' };
-    if (filters.tehsil) where.tehsil = { contains: filters.tehsil, mode: 'insensitive' };
-    if (filters.village) where.village = { contains: filters.village, mode: 'insensitive' };
+    if (filters.locationId) {
+      where.locationId = filters.locationId;
+    } else if (filters.district || filters.tehsil || filters.village) {
+      where.location = {
+        ...(filters.district && { district: { contains: filters.district } }),
+        ...(filters.tehsil && { tehsil: { contains: filters.tehsil } }),
+        ...(filters.village && { village: { contains: filters.village } }),
+      };
+    }
 
     const records = await prisma.landRecord.findMany({
       where,
       include: {
         owners: true,
-        geometry: true,
+        parcel: true,
+        location: true,
       },
     });
 
     const features = records.map((rec) => {
       let geom: any = null;
-      if (rec.geometry?.geometryJson) {
-        geom = typeof rec.geometry.geometryJson === 'string'
-          ? JSON.parse(rec.geometry.geometryJson)
-          : rec.geometry.geometryJson;
+      if (rec.parcel?.geometryJson) {
+        geom = typeof rec.parcel.geometryJson === 'string'
+          ? JSON.parse(rec.parcel.geometryJson)
+          : rec.parcel.geometryJson;
       }
 
       return {
@@ -41,14 +49,16 @@ export class GisService {
           ulpin: rec.ulpin,
           khasraNumber: rec.khasraNumber,
           khatauniNumber: rec.khatauniNumber,
-          district: rec.district,
-          tehsil: rec.tehsil,
-          village: rec.village,
+          locationId: rec.locationId,
+          state: rec.location?.state || 'Rajasthan',
+          district: rec.location?.district || '',
+          tehsil: rec.location?.tehsil || '',
+          village: rec.location?.village || '',
           areaInSqMeters: rec.areaInSqMeters,
           status: rec.status,
-          primaryOwner: rec.owners.find((o) => o.isPrimary)?.ownerName || rec.owners[0]?.ownerName || 'Unknown',
-          centroidLat: rec.geometry?.centroidLat,
-          centroidLng: rec.geometry?.centroidLng,
+          primaryOwner: rec.owners.find((o) => o.isPrimary)?.fullName || rec.owners[0]?.fullName || 'Unknown',
+          centroidLat: rec.parcel?.centroidLat,
+          centroidLng: rec.parcel?.centroidLng,
         },
       };
     });

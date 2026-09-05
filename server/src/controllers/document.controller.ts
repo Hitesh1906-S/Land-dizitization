@@ -13,16 +13,31 @@ export class DocumentController {
         throw new BadRequestError('No document file was uploaded');
       }
 
-      const { recordId, workflowId, documentType } = req.body;
+      const { landRecordId, requestId, documentType } = req.body;
 
       const doc = await DocumentService.registerUpload(req.file, {
-        recordId,
-        workflowId,
+        landRecordId,
+        requestId,
         documentType,
         uploadedById: req.user!.id,
       });
 
       return sendSuccess(res, doc, 'Document uploaded and checksum verified', HTTP_STATUS.CREATED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async list(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { landRecordId, requestId, uploadedById } = req.query;
+      const docs = await DocumentService.listDocuments({
+        landRecordId: landRecordId as string,
+        requestId: requestId as string,
+        uploadedById: uploadedById as string,
+      });
+
+      return sendSuccess(res, docs, 'Documents retrieved successfully');
     } catch (err) {
       next(err);
     }
