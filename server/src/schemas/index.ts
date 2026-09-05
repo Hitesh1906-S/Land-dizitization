@@ -126,6 +126,24 @@ export const verifyExtractedFieldSchema = z.object({
   verifiedValue: z.string().min(1, 'Verified value is required'),
 });
 
+export const correctFieldSchema = z.object({
+  correctedValue: z.string().min(1, 'Corrected value is required'),
+  reason: z.string().optional(),
+});
+
+export const rejectFieldSchema = z.object({
+  reason: z.string().min(3, 'Rejection reason is required'),
+});
+
+export const sendBackCorrectionSchema = z.object({
+  reason: z.string().min(5, 'Specific correction instructions are required'),
+  requiredDocuments: z.array(z.string()).optional(),
+});
+
+export const approveCompleteRecordSchema = z.object({
+  notes: z.string().optional(),
+});
+
 export const extractFieldsSchema = z.object({
   rawOcrText: z.string().min(1, 'Raw OCR text is required'),
   provider: z.enum(['gemini', 'gemini-ai', 'deterministic', 'rule-based']).optional(),

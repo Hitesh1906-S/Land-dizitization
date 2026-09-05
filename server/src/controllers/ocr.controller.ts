@@ -43,6 +43,44 @@ export class OcrController {
     }
   }
 
+  static async approveField(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fieldId } = req.params;
+      const userId = req.user?.id || 'admin-user-id';
+
+      const field = await OcrService.approveField(fieldId, userId);
+      return sendSuccess(res, field, 'Extracted field approved successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async correctField(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fieldId } = req.params;
+      const { correctedValue, reason } = req.body;
+      const userId = req.user?.id || 'admin-user-id';
+
+      const field = await OcrService.correctField(fieldId, correctedValue, userId, reason);
+      return sendSuccess(res, field, 'Extracted field corrected and approved');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async rejectField(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fieldId } = req.params;
+      const { reason } = req.body;
+      const userId = req.user?.id || 'admin-user-id';
+
+      const field = await OcrService.rejectField(fieldId, reason, userId);
+      return sendSuccess(res, field, 'Extracted field rejected');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async verifyField(req: Request, res: Response, next: NextFunction) {
     try {
       const { fieldId } = req.params;
@@ -68,6 +106,32 @@ export class OcrController {
 
       const result = await OcrService.batchVerifyFields(documentId, verifications, userId);
       return sendSuccess(res, result, 'All extracted fields verified successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async approveCompleteRecord(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { documentId } = req.params;
+      const { notes } = req.body;
+      const userId = req.user?.id || 'admin-user-id';
+
+      const result = await OcrService.approveCompleteRecord(documentId, userId, notes);
+      return sendSuccess(res, result, 'Complete land record approved, sanctioned and digitized successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async sendBackForCorrection(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { documentId } = req.params;
+      const { reason, requiredDocuments } = req.body;
+      const userId = req.user?.id || 'admin-user-id';
+
+      const result = await OcrService.sendBackForCorrection(documentId, reason, userId, requiredDocuments);
+      return sendSuccess(res, result, 'Document sent back to citizen for correction');
     } catch (err) {
       next(err);
     }
