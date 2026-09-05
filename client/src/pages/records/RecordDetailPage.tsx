@@ -25,6 +25,10 @@ import {
   Compass,
   FileCheck,
   Edit3,
+  Printer,
+  Sparkles,
+  Search,
+  Eye,
 } from 'lucide-react';
 
 export const RecordDetailPage: React.FC = () => {
@@ -376,9 +380,29 @@ export const RecordDetailPage: React.FC = () => {
                       </p>
                     </div>
 
-                    <Badge variant="info" size="sm">
-                      {doc.documentType.replace(/_/g, ' ')}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="info" size="sm">
+                        {doc.documentType.replace(/_/g, ' ')}
+                      </Badge>
+                      <a
+                        href={`/api/v1/documents/${doc.id}/view`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1 text-slate-500 hover:text-govblue-600 hover:bg-slate-200 rounded"
+                        title="View Document"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </a>
+                      <a
+                        href={`/api/v1/documents/${doc.id}/download`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1 text-slate-500 hover:text-govblue-600 hover:bg-slate-200 rounded"
+                        title="Download Document"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>

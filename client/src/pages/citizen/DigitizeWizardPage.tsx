@@ -102,8 +102,16 @@ export const DigitizeWizardPage: React.FC = () => {
     }
   };
 
-  const handleRemoveDoc = (id: string) => {
-    setUploadedDocs((prev) => prev.filter((d) => d.id !== id));
+  const handleRemoveDoc = async (id: string) => {
+    try {
+      await apiClient.delete(`/documents/${id}`);
+      setUploadedDocs((prev) => prev.filter((d) => d.id !== id));
+      showToast('Document removed and purged from storage', 'info', 'Document Removed');
+    } catch (err: any) {
+      console.error('Failed to delete document:', err);
+      // If server error, still allow removing from local pending array
+      setUploadedDocs((prev) => prev.filter((d) => d.id !== id));
+    }
   };
 
   const handleFinalSubmit = async () => {
@@ -370,14 +378,26 @@ export const DigitizeWizardPage: React.FC = () => {
                         SHA-256: {doc.fileHash}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleRemoveDoc(doc.id)}
-                      className="text-govred-600 hover:text-govred-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`/api/v1/documents/${doc.id}/view`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 text-slate-500 hover:text-govblue-600 hover:bg-slate-100 rounded transition-colors"
+                        title="View Document in new tab"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </a>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRemoveDoc(doc.id)}
+                        className="text-govred-600 hover:text-govred-700"
+                        title="Delete Document"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
