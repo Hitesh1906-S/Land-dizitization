@@ -1,31 +1,31 @@
 import { prisma } from '../../config/database';
 import { JobStatus, OcrEngine } from '../../constants';
-import { NotFoundError } from '../../utils/AppError';
-import { env } from '../../config/env';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NotFoundError, BadRequestError } from '../../utils/AppError';
 import { OCRResultDTO, ExtractedFieldDTO } from '@land-digitization/shared';
+import { defaultStorageProvider } from '../storage';
+import { DocumentPreprocessor } from './preprocessor';
+import { OcrEngineFactory } from './engines';
+import { LandFieldExtractor } from './field.extractor';
 import fs from 'fs';
 
-export interface ExtractedLandFields {
-  khasraNumber?: string;
-  khatauniNumber?: string;
-  district?: string;
-  tehsil?: string;
-  village?: string;
-  areaInSqMeters?: number;
-  owners?: { name: string; share?: number; relation?: string }[];
-  rawText: string;
-  confidenceScore: number;
-}
-
 export class OcrService {
-  static async startExtractionJob(documentId: string, engine: OcrEngine = OcrEngine.HYBRID): Promise<OCRResultDTO> {
-    const document = await prisma.document.findUnique({ where: { id: documentId } });
+  /**
+   * Starts and executes real OCR extraction on an uploaded document.
+   */
+  static async startExtractionJob(
+    documentId: string,
+    engine: OcrEngine = OcrEngine.HYBRID,
+    preprocessingOptions?: { enableDeskew?: boolean; enableContrast?: boolean; enableDenoise?: boolean }
+  ): Promise<OCRResultDTO> {
+    const document = await prisma.document.findUnique({
+      where: { id: documentId },
+    });
+
     if (!document) {
-      throw new NotFoundError(`Document with ID ${documentId} not found`);
+      throw new NotFoundError(`Document with ID '${documentId}' not found`);
     }
 
-    // Check if OCRResult already exists
+    // 1. Initialize or update OCRResult record in PostgreSQL as PROCESSING
     let ocrResult = await prisma.oCRResult.findUnique({
       where: { documentId },
     });
@@ -52,148 +52,114 @@ export class OcrService {
       });
     }
 
-    // Process synchronously or pseudo-async
     const startTime = Date.now();
-    try {
-      let extracted: ExtractedLandFields;
 
-      if (env.GEMINI_API_KEY && (engine === OcrEngine.GEMINI_VISION || engine === OcrEngine.HYBRID)) {
-        extracted = await this.extractWithGemini(document.filePath);
-      } else {
-        extracted = await this.extractFallback(document.filePath);
+    try {
+      // 2. Fetch binary buffer from storage provider
+      let fileBuffer: Buffer;
+      try {
+        fileBuffer = await defaultStorageProvider.getFileBuffer(document.filePath);
+      } catch (err: any) {
+        // Fallback check if file exists directly on disk
+        if (fs.existsSync(document.filePath)) {
+          fileBuffer = fs.readFileSync(document.filePath);
+        } else {
+          throw new NotFoundError(`Physical file '${document.filePath}' not found on storage disk`);
+        }
       }
 
-      const processingTimeMs = Date.now() - startTime;
+      // 3. Run Preprocessing Pipeline (Deskew, Denoise, Contrast, Scaling)
+      const preprocessed = await DocumentPreprocessor.preprocess(
+        fileBuffer,
+        document.fileType,
+        preprocessingOptions
+      );
 
-      const updated = await prisma.oCRResult.update({
+      // 4. Select Pluggable OCR Engine
+      const selectedEngine = OcrEngineFactory.getEngine(engine);
+      const absPath = defaultStorageProvider.getAbsolutePath(document.filePath);
+
+      // 5. Execute OCR Extraction
+      const rawExtraction = await selectedEngine.extract({
+        filePath: absPath,
+        buffer: preprocessed.preprocessedBuffer,
+        mimeType: document.fileType,
+        preprocessingMeta: preprocessed.metadata,
+      });
+
+      const totalProcessingTimeMs = Date.now() - startTime;
+
+      // 6. Extract structured land record fields from raw text
+      const extractedFields = LandFieldExtractor.extractFields(
+        rawExtraction.rawText,
+        rawExtraction.confidenceScore
+      );
+
+      // 7. Persist completed OCRResult in PostgreSQL
+      const updatedResult = await prisma.oCRResult.update({
         where: { id: ocrResult.id },
         data: {
           status: JobStatus.COMPLETED,
-          rawText: extracted.rawText,
-          confidenceScore: extracted.confidenceScore,
-          pageCount: 1,
-          processingTimeMs,
+          rawText: rawExtraction.rawText,
+          confidenceScore: rawExtraction.confidenceScore,
+          pageCount: rawExtraction.pageCount || 1,
+          processingTimeMs: totalProcessingTimeMs,
           completedAt: new Date(),
         },
       });
 
-      // Create granular ExtractedField records
-      const fieldsToCreate: { fieldName: string; fieldValue: string; confidence: number }[] = [];
-      if (extracted.khasraNumber) fieldsToCreate.push({ fieldName: 'khasraNumber', fieldValue: extracted.khasraNumber, confidence: extracted.confidenceScore });
-      if (extracted.khatauniNumber) fieldsToCreate.push({ fieldName: 'khatauniNumber', fieldValue: extracted.khatauniNumber, confidence: extracted.confidenceScore });
-      if (extracted.village) fieldsToCreate.push({ fieldName: 'village', fieldValue: extracted.village, confidence: extracted.confidenceScore });
-      if (extracted.tehsil) fieldsToCreate.push({ fieldName: 'tehsil', fieldValue: extracted.tehsil, confidence: extracted.confidenceScore });
-      if (extracted.district) fieldsToCreate.push({ fieldName: 'district', fieldValue: extracted.district, confidence: extracted.confidenceScore });
-      if (extracted.areaInSqMeters) fieldsToCreate.push({ fieldName: 'areaInSqMeters', fieldValue: String(extracted.areaInSqMeters), confidence: extracted.confidenceScore });
-      if (extracted.owners && extracted.owners.length > 0) {
-        fieldsToCreate.push({
-          fieldName: 'owners',
-          fieldValue: extracted.owners.map(o => `${o.name}${o.relation ? ` (${o.relation})` : ''}`).join(', '),
-          confidence: extracted.confidenceScore,
-        });
-      }
-
-      for (const field of fieldsToCreate) {
+      // 8. Persist granular ExtractedField records
+      for (const field of extractedFields) {
         await prisma.extractedField.create({
           data: {
-            ocrResultId: updated.id,
+            ocrResultId: updatedResult.id,
             fieldName: field.fieldName,
             fieldValue: field.fieldValue,
             confidence: field.confidence,
+            boundingBoxJson: field.boundingBox ? JSON.stringify(field.boundingBox) : null,
           },
         });
       }
 
+      // 9. Write immutable audit log
+      await prisma.auditLog.create({
+        data: {
+          actorId: document.uploadedById,
+          actorRole: 'SYSTEM_OCR',
+          action: 'RUN_OCR',
+          entityType: 'OCRResult',
+          entityId: updatedResult.id,
+          snapshotDiffJson: JSON.stringify({
+            documentId,
+            engine: rawExtraction.engine,
+            confidenceScore: rawExtraction.confidenceScore,
+            fieldsCount: extractedFields.length,
+            processingTimeMs: totalProcessingTimeMs,
+          }),
+        },
+      });
+
       return this.getResultByDocumentId(documentId);
     } catch (err: any) {
+      console.error('OCR Processing Pipeline failed:', err);
+      const totalProcessingTimeMs = Date.now() - startTime;
+
       await prisma.oCRResult.update({
         where: { id: ocrResult.id },
         data: {
           status: JobStatus.FAILED,
-          rawText: `Extraction error: ${err.message}`,
+          rawText: `OCR Pipeline Error: ${err.message}`,
+          processingTimeMs: totalProcessingTimeMs,
         },
       });
+
       return this.getResultByDocumentId(documentId);
     }
   }
 
-  private static async extractWithGemini(filePath: string): Promise<ExtractedLandFields> {
-    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    
-    let base64Data = '';
-    if (fs.existsSync(filePath)) {
-      const fileBuffer = fs.readFileSync(filePath);
-      base64Data = fileBuffer.toString('base64');
-    }
-
-    if (!base64Data) {
-      return this.extractFallback(filePath);
-    }
-
-    const prompt = `Analyze this Indian land record / property deed (e.g. 7/12 extract, Jamabandi, Sale Deed, or Mutation Sanction). 
-Extract the following fields in strict JSON format:
-{
-  "khasraNumber": "string",
-  "khatauniNumber": "string",
-  "district": "string",
-  "tehsil": "string",
-  "village": "string",
-  "areaInSqMeters": number,
-  "owners": [{"name": "string", "share": number, "relation": "string"}],
-  "confidenceScore": number,
-  "summary": "string"
-}`;
-
-    try {
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: 'image/jpeg',
-          },
-        },
-      ]);
-
-      const text = result.response.text() || '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      let parsedData: any = {};
-
-      if (jsonMatch) {
-        parsedData = JSON.parse(jsonMatch[0]);
-      }
-
-      return {
-        khasraNumber: parsedData.khasraNumber || '102/4',
-        khatauniNumber: parsedData.khatauniNumber || '45B',
-        district: parsedData.district || 'Jaipur',
-        tehsil: parsedData.tehsil || 'Sanganer',
-        village: parsedData.village || 'Rampur',
-        areaInSqMeters: parsedData.areaInSqMeters || 4050,
-        owners: parsedData.owners || [{ name: 'Ram Kumar Sharma', share: 1.0 }],
-        rawText: text,
-        confidenceScore: parsedData.confidenceScore || 0.94,
-      };
-    } catch {
-      return this.extractFallback(filePath);
-    }
-  }
-
-  private static async extractFallback(filePath: string): Promise<ExtractedLandFields> {
-    return {
-      khasraNumber: '102/4',
-      khatauniNumber: '45B',
-      district: 'Jaipur',
-      tehsil: 'Sanganer',
-      village: 'Rampur',
-      areaInSqMeters: 4050,
-      owners: [{ name: 'Ram Kumar Sharma', share: 1.0, relation: 'S/O Mohan Lal' }],
-      rawText: `[OCR Parsed Content from ${filePath}]\nKhasra No: 102/4\nKhatauni: 45B\nVillage: Rampur\nTehsil: Sanganer\nDistrict: Jaipur\nArea: 4050 sq.m\nOwner: Ram Kumar Sharma s/o Mohan Lal (Share: 100%)`,
-      confidenceScore: 0.92,
-    };
-  }
-
+  /**
+   * Retrieves OCR result by Document ID with all extracted fields.
+   */
   static async getResultByDocumentId(documentId: string): Promise<OCRResultDTO> {
     const result = await prisma.oCRResult.findUnique({
       where: { documentId },
@@ -207,6 +173,9 @@ Extract the following fields in strict JSON format:
     return this.mapToDTO(result);
   }
 
+  /**
+   * Verifies and records officer review of an extracted field.
+   */
   static async verifyField(fieldId: string, verifiedValue: string, verifiedById: string): Promise<ExtractedFieldDTO> {
     const field = await prisma.extractedField.findUnique({
       where: { id: fieldId },
@@ -251,18 +220,20 @@ Extract the following fields in strict JSON format:
       processingTimeMs: result.processingTimeMs || undefined,
       completedAt: result.completedAt ? result.completedAt.toISOString() : undefined,
       createdAt: result.createdAt.toISOString(),
-      extractedFields: result.extractedFields ? result.extractedFields.map((f: any) => ({
-        id: f.id,
-        ocrResultId: f.ocrResultId,
-        fieldName: f.fieldName,
-        fieldValue: f.fieldValue,
-        confidence: f.confidence,
-        boundingBoxJson: f.boundingBoxJson || undefined,
-        isVerified: f.isVerified,
-        verifiedValue: f.verifiedValue || undefined,
-        verifiedById: f.verifiedById || undefined,
-        createdAt: f.createdAt.toISOString(),
-      })) : [],
+      extractedFields: result.extractedFields
+        ? result.extractedFields.map((f: any) => ({
+            id: f.id,
+            ocrResultId: f.ocrResultId,
+            fieldName: f.fieldName,
+            fieldValue: f.fieldValue,
+            confidence: f.confidence,
+            boundingBoxJson: f.boundingBoxJson || undefined,
+            isVerified: f.isVerified,
+            verifiedValue: f.verifiedValue || undefined,
+            verifiedById: f.verifiedById || undefined,
+            createdAt: f.createdAt.toISOString(),
+          }))
+        : [],
     };
   }
 }

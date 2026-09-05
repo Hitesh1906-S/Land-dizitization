@@ -10,6 +10,7 @@ const router = Router();
 
 router.post('/process', authenticate, validateRequest(processOcrSchema), OcrController.startJob);
 router.get('/document/:documentId', authenticate, OcrController.getResultByDocumentId);
+router.get('/status/:documentId', authenticate, OcrController.getResultByDocumentId);
 router.patch(
   '/field/:fieldId/verify',
   authenticate,
